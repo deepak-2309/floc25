@@ -8,7 +8,8 @@ import {
   Timestamp,
   deleteDoc,
   doc,
-  updateDoc
+  updateDoc,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Activity } from '../types/Activity';
@@ -121,32 +122,54 @@ export const getMyActivities = async (userId: string) => {
   }
 };
 
-export const getFriendsActivities = async (userId: string) => {
+export const getUserName = async (userId: string): Promise<string> => {
   try {
-    console.log('Fetching friends activities, excluding user:', userId);
-    const activitiesRef = collection(db, ACTIVITIES_COLLECTION);
-    const q = query(
-      activitiesRef,
-      where('createdBy', '!=', userId),
-      orderBy('createdBy'),
-      orderBy('datetime', 'desc')
-    );
-    
-    const querySnapshot = await getDocs(q);
-    console.log('Found friends activities:', querySnapshot.size);
-    
-    const activities = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Activity[];
-    
-    console.log('Processed friends activities:', activities);
-    return activities;
-  } catch (error) {
-    console.error('Error getting friends activities:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to fetch friends activities: ${error.message}`);
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      return userDoc.data()?.name || userId;
     }
+    return userId;
+  } catch (error) {
+    console.error('Error fetching user name:', error);
+    return userId;
+  }
+};
+
+export const getFriendsActivities = async (userId: string): Promise<Activity[]> => {
+  try {
+    // Get user's connections
+    const connectionsQuery = query(
+      collection(db, 'connections'),
+      where('userId', '==', userId)
+    );
+    const connectionsSnapshot = await getDocs(connectionsQuery);
+    const connectionEmails = connectionsSnapshot.docs.map(doc => doc.data().email);
+
+    // Get activities from users who have these emails
+    const activitiesQuery = query(
+      collection(db, 'activities'),
+      where('userEmail', 'in', connectionEmails)
+    );
+    const activitiesSnapshot = await getDocs(activitiesQuery);
+    
+    // Get activities and fetch user names
+    const activities = await Promise.all(
+      activitiesSnapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const userName = await getUserName(data.userId);
+        return {
+          id: doc.id,
+          ...data,
+          createdBy: userName
+        } as Activity;
+      })
+    );
+
+    return activities.sort((a, b) => 
+      new Date(b.datetime).getTime() - new Date(a.datetime).getTime()
+    );
+  } catch (error) {
+    console.error('Error fetching friends activities:', error);
     throw error;
   }
 };
