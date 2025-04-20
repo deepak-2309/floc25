@@ -1,18 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MyActivities from './components/MyActivities';
 import FriendsActivities from './components/FriendsActivities';
-import { headingClasses, buttonClasses } from './styles/common';
+import Profile from './components/Profile';
+import SignIn from './components/SignIn';
+import { auth } from './config/firebase';
+import { headingClasses } from './styles/common';
 import { TabType, Tab } from './types';
-import { TABS } from './constants';
+import { NAVIGATION_TABS } from './constants';
+import { signOut } from 'firebase/auth';
 
 function App() {
   const [activeTab, setActiveTab] = useState<TabType>('my-activities');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [user, setUser] = useState(auth.currentUser);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  if (!user) {
+    return <SignIn />;
+  }
 
   const renderHeader = () => (
     <div className="flex justify-between items-center p-4 mb-2">
       <h2 className={headingClasses.h2}>
-        {TABS.find(tab => tab.id === activeTab)?.label}
+        {NAVIGATION_TABS.find(tab => tab.id === activeTab)?.label}
       </h2>
     </div>
   );
@@ -31,24 +55,46 @@ function App() {
     </button>
   );
 
+  const renderMainContent = () => {
+    switch (activeTab) {
+      case 'my-activities':
+        return (
+          <MyActivities 
+            isModalOpen={isModalOpen} 
+            onModalClose={() => setIsModalOpen(false)} 
+          />
+        );
+      case 'friends-activities':
+        return <FriendsActivities />;
+      case 'profile':
+        return <Profile />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="max-w-md mx-auto h-screen flex flex-col bg-instagram-cream relative">
       <header className="bg-instagram-brown text-instagram-cream p-4 shadow-lg">
-        <h1 className={headingClasses.h1}>Activity Tracker</h1>
+        <div className="flex justify-between items-center">
+          <h1 className={headingClasses.h1}>Activity Tracker</h1>
+          <button
+            onClick={handleSignOut}
+            className="text-instagram-cream hover:text-instagram-light transition-colors text-sm"
+          >
+            Sign Out
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-auto bg-instagram-beige">
         {renderHeader()}
-        {activeTab === 'my-activities' ? (
-          <MyActivities isModalOpen={isModalOpen} onModalClose={() => setIsModalOpen(false)} />
-        ) : (
-          <FriendsActivities />
-        )}
+        {renderMainContent()}
       </main>
 
       <nav className="bg-instagram-light border-t border-instagram-brown/20">
         <div className="flex">
-          {TABS.map(renderTab)}
+          {NAVIGATION_TABS.map(renderTab)}
         </div>
       </nav>
 

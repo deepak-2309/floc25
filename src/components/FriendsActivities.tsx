@@ -1,43 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Activity } from '../types/Activity';
 import ActivityCard from './ActivityCard';
-
-const SAMPLE_FRIENDS_ACTIVITIES: Activity[] = [
-  {
-    id: '4',
-    title: 'Basketball Game',
-    datetime: '2024-01-20T18:00:00',
-    location: 'Community Center',
-    description: 'Pickup basketball game',
-    createdBy: 'John'
-  },
-  {
-    id: '5',
-    title: 'Book Club Meeting',
-    datetime: '2024-01-21T19:00:00',
-    location: 'City Library',
-    description: 'Discussing "The Midnight Library"',
-    createdBy: 'Sarah'
-  },
-  {
-    id: '6',
-    title: 'Hiking Trip',
-    datetime: '2024-01-22T09:00:00',
-    location: 'Mountain Trail',
-    description: 'Easy to moderate difficulty, 2-hour hike',
-    createdBy: 'Mike'
-  }
-];
+import { getFriendsActivities } from '../services/firestore';
+import { auth } from '../config/firebase';
 
 function FriendsActivities() {
-  const [activities] = useState<Activity[]>(SAMPLE_FRIENDS_ACTIVITIES);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      if (!auth.currentUser) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        const fetchedActivities = await getFriendsActivities(auth.currentUser.uid);
+        setActivities(fetchedActivities);
+      } catch (err) {
+        console.error('Error fetching friends activities:', err);
+        setError('Failed to load activities. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="p-4 text-center">
+        <div className="animate-spin h-8 w-8 border-4 border-instagram-brown border-t-transparent rounded-full mx-auto"></div>
+        <p className="mt-2 text-instagram-dark/60">Loading friends' activities...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4">
+        <div className="bg-red-50 text-red-600 p-4 rounded-md">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pt-0">
       <div className="space-y-4">
-        {activities.map((activity) => (
-          <ActivityCard key={activity.id} activity={activity} showCreator />
-        ))}
+        {activities.length === 0 ? (
+          <div className="text-center text-instagram-dark/60 py-8">
+            <p>No activities from friends yet.</p>
+            <p className="text-sm">Share the app with your friends to see their activities!</p>
+          </div>
+        ) : (
+          activities.map((activity) => (
+            <ActivityCard key={activity.id} activity={activity} showCreator />
+          ))
+        )}
       </div>
     </div>
   );

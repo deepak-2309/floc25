@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export interface Activity {
   id: string;
   title: string;
@@ -5,4 +7,5 @@ export interface Activity {
   location?: string;
   description?: string;
   createdBy: string;
+  createdAt?: Timestamp;
 } 
