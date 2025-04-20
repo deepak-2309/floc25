@@ -8,4 +8,6 @@ export interface Activity {
   description?: string;
   createdBy: string;
   createdAt?: Timestamp;
+  userId: string;
+  userEmail?: string;
 } 

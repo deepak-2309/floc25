@@ -1,139 +1,124 @@
-import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, deleteDoc, doc, addDoc } from 'firebase/firestore';
-import { db, auth } from '../config/firebase';
-import type { Activity } from '../types/Activity';
+import React, { useEffect, useState } from 'react';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { Activity } from '../types/Activity';
+import { useAuth } from '../contexts/AuthContext';
+import ActivityForm from './ActivityForm';
 import ActivityCard from './ActivityCard';
-import NewActivityModal from './NewActivityModal';
-import { getUserName } from '../services/firestore';
+import { addActivity } from '../services/firestore';
+import { CircularProgress, Typography, Box, Button } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 
-interface MyActivitiesProps {
-  isModalOpen: boolean;
-  onModalClose: () => void;
-}
-
-function MyActivities({ isModalOpen, onModalClose }: MyActivitiesProps) {
+const MyActivities: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string>('');
-  const user = auth.currentUser;
+  const [showForm, setShowForm] = useState(false);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      loadActivities();
-      loadUserName();
-    }
-  }, [user]);
-
-  const loadUserName = async () => {
+  const fetchActivities = async () => {
     if (!user) return;
-    const name = await getUserName(user.uid);
-    setUserName(name);
-  };
-
-  const loadActivities = async () => {
-    if (!user) return;
-
+    
     try {
-      setIsLoading(true);
-      setError(null);
-      const q = query(
+      setLoading(true);
+      const activitiesQuery = query(
         collection(db, 'activities'),
-        where('userId', '==', user.uid)
+        where('userId', '==', user.uid),
+        orderBy('datetime', 'desc')
       );
       
-      const querySnapshot = await getDocs(q);
-      const activitiesList = querySnapshot.docs.map(doc => ({
+      const querySnapshot = await getDocs(activitiesQuery);
+      const activitiesData = querySnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
-        createdBy: userName || user.uid
+        ...doc.data()
       })) as Activity[];
-
-      setActivities(activitiesList.sort((a, b) => 
-        new Date(b.datetime).getTime() - new Date(a.datetime).getTime()
-      ));
+      
+      setActivities(activitiesData);
+      setError(null);
     } catch (err) {
-      console.error('Error loading activities:', err);
-      setError('Failed to load activities');
+      console.error('Error fetching activities:', err);
+      setError('Failed to load activities. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleAddActivity = async (activityData: Omit<Activity, 'id' | 'createdBy' | 'userId'>) => {
+  useEffect(() => {
+    fetchActivities();
+  }, [user]);
+
+  const handleAddActivity = async (activity: Omit<Activity, 'id'>) => {
     if (!user) return;
-
+    
     try {
-      await addDoc(collection(db, 'activities'), {
-        ...activityData,
-        userId: user.uid,
-        userEmail: user.email,
-        createdBy: userName || user.uid
-      });
-
-      loadActivities();
-      onModalClose();
-    } catch (error) {
-      console.error('Error adding activity:', error);
-      setError('Failed to add activity');
+      await addActivity(activity, user.uid, user.email || '');
+      await fetchActivities();
+      setShowForm(false);
+    } catch (err) {
+      console.error('Error adding activity:', err);
+      setError('Failed to add activity. Please try again.');
     }
   };
 
-  const handleDeleteActivity = async (activityId: string) => {
-    try {
-      await deleteDoc(doc(db, 'activities', activityId));
-      loadActivities();
-    } catch (error) {
-      console.error('Error deleting activity:', error);
-      setError('Failed to delete activity');
-    }
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="p-4 text-center">
-        <div className="animate-spin h-8 w-8 border-4 border-instagram-brown border-t-transparent rounded-full mx-auto"></div>
-        <p className="mt-2 text-instagram-dark/60">Loading your activities...</p>
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <CircularProgress />
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4">
-        <div className="bg-red-50 text-red-600 p-4 rounded-md">
-          {error}
-        </div>
-      </div>
+      <Box textAlign="center" p={2}>
+        <Typography color="error">{error}</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="p-4 pt-0">
-      <div className="space-y-4">
-        {activities.length === 0 ? (
-          <div className="text-center text-instagram-dark/60 py-8">
-            <p>No activities yet.</p>
-            <p className="text-sm">Click the + button to add your first activity!</p>
-          </div>
-        ) : (
-          activities.map((activity) => (
+    <Box>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h5" component="h2">
+          My Activities
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => setShowForm(true)}
+        >
+          Add Activity
+        </Button>
+      </Box>
+
+      {showForm && (
+        <Box mb={3}>
+          <ActivityForm
+            onSubmit={handleAddActivity}
+            onCancel={() => setShowForm(false)}
+          />
+        </Box>
+      )}
+
+      {activities.length === 0 ? (
+        <Typography variant="body1" textAlign="center" mt={4}>
+          You haven't added any activities yet. Click the button above to add your first activity!
+        </Typography>
+      ) : (
+        <Box display="flex" flexDirection="column" gap={2}>
+          {activities.map((activity) => (
             <ActivityCard
               key={activity.id}
               activity={activity}
-              onDelete={handleDeleteActivity}
+              onDelete={fetchActivities}
+              showActions={true}
             />
-          ))
-        )}
-      </div>
-
-      <NewActivityModal
-        isOpen={isModalOpen}
-        onClose={onModalClose}
-        onSubmit={handleAddActivity}
-      />
-    </div>
+          ))}
+        </Box>
+      )}
+    </Box>
   );
-}
+};
 
 export default MyActivities; 

@@ -16,12 +16,13 @@ import { Activity } from '../types/Activity';
 
 const ACTIVITIES_COLLECTION = 'activities';
 
-export const addActivity = async (activity: Omit<Activity, 'id'>, userId: string) => {
+export const addActivity = async (activity: Omit<Activity, 'id'>, userId: string, userEmail: string) => {
   try {
-    console.log('Adding activity:', { ...activity, userId });
+    console.log('Adding activity:', { ...activity, userId, userEmail });
     const docRef = await addDoc(collection(db, ACTIVITIES_COLLECTION), {
       ...activity,
-      createdBy: userId,
+      userId,
+      userEmail,
       createdAt: Timestamp.now()
     });
     console.log('Activity added successfully:', docRef.id);
@@ -145,12 +146,20 @@ export const getFriendsActivities = async (userId: string): Promise<Activity[]> 
     const connectionsSnapshot = await getDocs(connectionsQuery);
     const connectionEmails = connectionsSnapshot.docs.map(doc => doc.data().email);
 
+    if (connectionEmails.length === 0) {
+      return [];
+    }
+
     // Get activities from users who have these emails
     const activitiesQuery = query(
       collection(db, 'activities'),
       where('userEmail', 'in', connectionEmails)
     );
+
+    console.log('Querying activities for emails:', connectionEmails);
+    
     const activitiesSnapshot = await getDocs(activitiesQuery);
+    console.log('Found activities:', activitiesSnapshot.size);
     
     // Get activities and fetch user names
     const activities = await Promise.all(
