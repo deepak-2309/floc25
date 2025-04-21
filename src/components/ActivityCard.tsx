@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, Typography, IconButton, Box } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 
 /**
  * Interface representing an activity in the application.
@@ -12,6 +13,7 @@ export interface Activity {
   createdBy?: string;  // Name of the user who created the activity (optional)
   location: string;    // Location where the activity will take place
   dateTime: Date;      // Date and time when the activity is scheduled
+  description: string; // Description of the activity
 }
 
 /**
@@ -22,6 +24,7 @@ interface ActivityCardProps {
   activity: Activity;              // The activity data to display
   showDelete?: boolean;            // Whether to show the delete button (optional)
   onDelete?: () => void;           // Callback function for delete action (optional)
+  onEdit?: () => void;            // Callback function for edit action (optional)
   creatorName?: string;            // Name of the activity creator (optional)
 }
 
@@ -36,6 +39,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   activity,
   showDelete = false,
   onDelete,
+  onEdit = undefined,
   creatorName
 }) => {
   // Format date and time using native JavaScript
@@ -69,18 +73,36 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
             <Typography color="textSecondary" gutterBottom>
               {activity.location}
             </Typography>
-            <Typography variant="body2">
+            <Typography variant="body2" gutterBottom>
               {formatDateTime(activity.dateTime)}
             </Typography>
+            {activity.description && (
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                {activity.description}
+              </Typography>
+            )}
           </Box>
-          {showDelete && onDelete && (
-            <IconButton
-              aria-label="delete"
-              onClick={onDelete}
-              sx={{ mt: -1, mr: -1 }}
-            >
-              <DeleteIcon />
-            </IconButton>
+          {(showDelete || onEdit) && (
+            <Box>
+              {onEdit && (
+                <IconButton
+                  aria-label="edit"
+                  onClick={onEdit}
+                  sx={{ mt: -1, mr: 1 }}
+                >
+                  <EditIcon />
+                </IconButton>
+              )}
+              {showDelete && onDelete && (
+                <IconButton
+                  aria-label="delete"
+                  onClick={onDelete}
+                  sx={{ mt: -1, mr: -1 }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              )}
+            </Box>
           )}
         </Box>
       </CardContent>

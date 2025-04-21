@@ -3,7 +3,8 @@ import { Box, Fab, CircularProgress, Alert, Snackbar } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ActivityCard, { Activity } from './ActivityCard';
 import CreateActivitySheet from './CreateActivitySheet';
-import { writeActivity, fetchUserActivities, deleteActivity } from '../firebase';
+import EditActivitySheet from './EditActivitySheet';
+import { writeActivity, fetchUserActivities, deleteActivity, updateActivity } from '../firebase';
 
 /**
  * MyActivities Component
@@ -15,6 +16,8 @@ import { writeActivity, fetchUserActivities, deleteActivity } from '../firebase'
 const MyActivities: React.FC = () => {
   // State for managing the bottom sheet visibility and activities
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +59,42 @@ const MyActivities: React.FC = () => {
         setError(error.message);
       } else {
         setError('Failed to delete activity');
+      }
+    }
+  };
+
+  /**
+   * Handler for editing an activity
+   * Opens the edit sheet with the selected activity
+   */
+  const handleEdit = (activity: Activity) => {
+    setEditingActivity(activity);
+    setIsEditSheetOpen(true);
+  };
+
+  /**
+   * Handler for submitting edited activity
+   * Updates the activity in Firestore and local state
+   */
+  const handleSubmitEdit = async (updatedActivity: Activity) => {
+    try {
+      setError(null);
+      await updateActivity(updatedActivity);
+      
+      // Update local state
+      setActivities(activities.map(activity => 
+        activity.id === updatedActivity.id ? updatedActivity : activity
+      ));
+      
+      setSuccessMessage('Activity updated successfully');
+      setIsEditSheetOpen(false);
+      setEditingActivity(null);
+    } catch (error) {
+      console.error('Error updating activity:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to update activity');
       }
     }
   };
@@ -120,6 +159,7 @@ const MyActivities: React.FC = () => {
             activity={activity}
             showDelete={true}
             onDelete={() => handleDelete(activity.id)}
+            onEdit={() => handleEdit(activity)}
           />
         ))
       )}
@@ -144,6 +184,19 @@ const MyActivities: React.FC = () => {
         onClose={() => setIsCreateSheetOpen(false)}
         onSubmit={handleSubmitActivity}
       />
+
+      {/* Bottom sheet for editing activities */}
+      {editingActivity && (
+        <EditActivitySheet
+          open={isEditSheetOpen}
+          onClose={() => {
+            setIsEditSheetOpen(false);
+            setEditingActivity(null);
+          }}
+          onSubmit={handleSubmitEdit}
+          activity={editingActivity}
+        />
+      )}
     </Box>
   );
 };

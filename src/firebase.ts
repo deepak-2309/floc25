@@ -59,6 +59,7 @@ export const writeActivity = async (activityData: {
   name: string;
   location: string;
   dateTime: Date;
+  description: string;
 }) => {
   const currentUser = auth.currentUser;
   if (!currentUser) {
@@ -349,6 +350,46 @@ export const fetchConnectionsActivities = async () => {
     }));
   } catch (error) {
     console.error('Error fetching connections activities:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates an existing activity in Firestore
+ * @param activity The activity data with ID
+ * @throws Error if user is not authenticated or not the owner of the activity
+ */
+export const updateActivity = async (activity: Activity) => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('User must be logged in to update activities');
+  }
+
+  try {
+    // Get the activity document to verify ownership
+    const activityRef = doc(db, 'activities', activity.id);
+    const activityDoc = await getDoc(activityRef);
+
+    if (!activityDoc.exists()) {
+      throw new Error('Activity not found');
+    }
+
+    // Verify the current user owns this activity
+    if (activityDoc.data().userId !== currentUser.uid) {
+      throw new Error('You can only update your own activities');
+    }
+
+    // Update the activity
+    await updateDoc(activityRef, {
+      name: activity.name,
+      location: activity.location,
+      description: activity.description,
+      dateTime: activity.dateTime.toISOString(),
+    });
+
+    console.log('Activity updated successfully');
+  } catch (error) {
+    console.error('Error updating activity:', error);
     throw error;
   }
 }; 

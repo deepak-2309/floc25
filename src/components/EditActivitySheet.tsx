@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Drawer,
   Box,
@@ -10,34 +10,42 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import { Activity } from './ActivityCard';
 
-interface CreateActivitySheetProps {
+interface EditActivitySheetProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (activity: Omit<Activity, 'id'>) => void;
+  onSubmit: (activity: Activity) => void;
+  activity: Activity;
 }
 
-const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
+const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
   open,
   onClose,
-  onSubmit
+  onSubmit,
+  activity
 }) => {
   const [selectedDateTime, setSelectedDateTime] = useState<string>('');
+
+  // Initialize form with activity data when opened
+  useEffect(() => {
+    if (open && activity) {
+      setSelectedDateTime(activity.dateTime.toISOString().slice(0, 16));
+    }
+  }, [open, activity]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     
-    const newActivity = {
+    const updatedActivity = {
+      ...activity,
       name: formData.get('name') as string,
       location: formData.get('location') as string,
       dateTime: new Date(selectedDateTime),
-      description: formData.get('description') as string,
-      createdBy: 'You' // Hardcoded for now
+      description: formData.get('description') as string
     };
 
-    onSubmit(newActivity);
+    onSubmit(updatedActivity);
     onClose();
-    setSelectedDateTime(''); // Reset the date time after submission
   };
 
   return (
@@ -55,7 +63,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
     >
       <Box sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6">Create New Activity</Typography>
+          <Typography variant="h6">Edit Activity</Typography>
           <IconButton onClick={onClose} size="small">
             <CloseIcon />
           </IconButton>
@@ -67,6 +75,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
             fullWidth
             label="Activity Name"
             name="name"
+            defaultValue={activity.name}
             placeholder="e.g., Morning Run"
           />
           
@@ -75,6 +84,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
             fullWidth
             label="Location"
             name="location"
+            defaultValue={activity.location}
             placeholder="e.g., City Park"
           />
           
@@ -90,10 +100,11 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
             }}
           />
 
-          <TextField
+        <TextField
             fullWidth
             label="Description"
             name="description"
+            defaultValue={activity.description}
             placeholder="Add details about your activity..."
             multiline
             rows={3}
@@ -105,7 +116,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
             fullWidth
             sx={{ mt: 2 }}
           >
-            Create Activity
+            Save Changes
           </Button>
         </Box>
       </Box>
@@ -113,4 +124,4 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
   );
 };
 
-export default CreateActivitySheet; 
+export default EditActivitySheet; 
