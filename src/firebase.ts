@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, doc, setDoc, serverTimestamp, getDoc, updateDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, getDoc, updateDoc, collection, addDoc, query, where, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
 import { Activity } from './components/ActivityCard';
 
 const firebaseConfig = {
@@ -209,4 +209,146 @@ export const fetchUserConnections = async () => {
     username: connection.username,
     connectedAt: connection.connectedAt
   }));
+};
+
+/**
+ * Updates the username in the user's document and all their connections
+ * @param newUsername The new username to set
+ * @throws Error if user is not authenticated
+ */
+export const updateUsername = async (newUsername: string) => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('User must be logged in to update username');
+  }
+
+  try {
+    const userRef = doc(db, 'users', currentUser.uid);
+    const userDoc = await getDoc(userRef);
+    const userData = userDoc.data();
+
+    if (!userData) {
+      throw new Error('User data not found');
+    }
+
+    // Start a new batch write
+    const batch = writeBatch(db);
+
+    // Update the username in the user's own document
+    batch.update(userRef, {
+      username: newUsername.trim()
+    });
+
+    // If the user has connections, update the username in all connected users' documents
+    if (userData.connections) {
+      const connectedUserIds = Object.keys(userData.connections);
+      
+      for (const connectedUserId of connectedUserIds) {
+        const connectedUserRef = doc(db, 'users', connectedUserId);
+        const connectedUserDoc = await getDoc(connectedUserRef);
+        
+        if (connectedUserDoc.exists()) {
+          // Update the username in the connected user's connections
+          batch.update(connectedUserRef, {
+            [`connections.${currentUser.uid}.username`]: newUsername.trim()
+          });
+        }
+      }
+    }
+
+    // Commit all updates in a single batch
+    await batch.commit();
+    console.log('Username updated successfully in all locations');
+  } catch (error) {
+    console.error('Error updating username:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes an activity from Firestore
+ * @param activityId The ID of the activity to delete
+ * @throws Error if user is not authenticated or not the owner of the activity
+ */
+export const deleteActivity = async (activityId: string) => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('User must be logged in to delete activities');
+  }
+
+  try {
+    // Get the activity document to verify ownership
+    const activityRef = doc(db, 'activities', activityId);
+    const activityDoc = await getDoc(activityRef);
+
+    if (!activityDoc.exists()) {
+      throw new Error('Activity not found');
+    }
+
+    // Verify the current user owns this activity
+    if (activityDoc.data().userId !== currentUser.uid) {
+      throw new Error('You can only delete your own activities');
+    }
+
+    // Delete the activity
+    await deleteDoc(activityRef);
+    console.log('Activity deleted successfully');
+  } catch (error) {
+    console.error('Error deleting activity:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches activities created by the user's connections
+ * @returns Array of activities from connected users
+ * @throws Error if user is not authenticated
+ */
+export const fetchConnectionsActivities = async () => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('User must be logged in to fetch activities');
+  }
+
+  try {
+    // First, get the current user's connections
+    const userRef = doc(db, 'users', currentUser.uid);
+    const userDoc = await getDoc(userRef);
+    const userData = userDoc.data();
+
+    if (!userData?.connections) {
+      return []; // Return empty array if user has no connections
+    }
+
+    // Get the IDs of all connected users
+    const connectedUserIds = Object.keys(userData.connections);
+
+    // Query activities created by any of the connected users
+    const activitiesRef = collection(db, 'activities');
+    const q = query(
+      activitiesRef,
+      where('userId', 'in', connectedUserIds),
+      // You might want to add more query constraints here, like ordering by date
+      // orderBy('dateTime', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    // Map the activities and include the creator's username/email
+    return Promise.all(querySnapshot.docs.map(async doc => {
+      const activityData = doc.data();
+      const creatorId = activityData.userId;
+      const creatorInfo = userData.connections[creatorId];
+
+      return {
+        id: doc.id,
+        ...activityData,
+        dateTime: new Date(activityData.dateTime),
+        creatorName: creatorInfo.username || creatorInfo.email // Use username if available, otherwise use email
+      };
+    }));
+  } catch (error) {
+    console.error('Error fetching connections activities:', error);
+    throw error;
+  }
 }; 

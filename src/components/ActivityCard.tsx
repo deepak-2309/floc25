@@ -9,7 +9,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 export interface Activity {
   id: string;          // Unique identifier for the activity
   name: string;        // Name/title of the activity
-  createdBy: string;   // Name of the user who created the activity
+  createdBy?: string;  // Name of the user who created the activity (optional)
   location: string;    // Location where the activity will take place
   dateTime: Date;      // Date and time when the activity is scheduled
 }
@@ -21,64 +21,63 @@ export interface Activity {
 interface ActivityCardProps {
   activity: Activity;              // The activity data to display
   showDelete?: boolean;            // Whether to show the delete button (optional)
-  onDelete?: (id: string) => void; // Callback function for delete action (optional)
+  onDelete?: () => void;           // Callback function for delete action (optional)
+  creatorName?: string;            // Name of the activity creator (optional)
 }
 
 /**
  * ActivityCard Component
  * 
- * A reusable card component that displays activity information in a consistent format.
- * Can be used in both MyActivities and FriendsActivities views with different configurations.
- * 
- * @param activity - The activity data to display
- * @param showDelete - Optional flag to show/hide delete button
- * @param onDelete - Optional callback function when delete is clicked
+ * Displays an activity in a Material-UI Card format.
+ * Shows the activity name, location, date/time, and optionally a delete button.
+ * When used in FriendsActivities, it also shows the creator's name.
  */
-const ActivityCard: React.FC<ActivityCardProps> = ({ activity, showDelete = false, onDelete }) => {
-  // Handler for delete button click
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(activity.id);
-    }
-  };
-
-  // Format the date for display
+const ActivityCard: React.FC<ActivityCardProps> = ({
+  activity,
+  showDelete = false,
+  onDelete,
+  creatorName
+}) => {
+  // Format date and time using native JavaScript
   const formatDateTime = (date: Date) => {
-    return date.toLocaleString('en-US', {
+    const dateStr = date.toLocaleDateString('en-US', {
       weekday: 'long',
+      month: 'long',
+      day: 'numeric'
+    });
+    const timeStr = date.toLocaleTimeString('en-US', {
       hour: 'numeric',
-      minute: 'numeric',
+      minute: '2-digit',
       hour12: true
     });
+    return `${dateStr} at ${timeStr}`;
   };
 
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
-        {/* Flex container for activity details and delete button */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          {/* Activity information section */}
           <Box>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" component="div">
               {activity.name}
             </Typography>
-            <Typography color="text.secondary" gutterBottom>
-              {activity.createdBy}
-            </Typography>
-            <Typography color="text.secondary" gutterBottom>
+            {creatorName && (
+              <Typography color="textSecondary" gutterBottom>
+                Created by {creatorName}
+              </Typography>
+            )}
+            <Typography color="textSecondary" gutterBottom>
               {activity.location}
             </Typography>
-            <Typography color="text.secondary">
+            <Typography variant="body2">
               {formatDateTime(activity.dateTime)}
             </Typography>
           </Box>
-          {/* Conditional render of delete button */}
-          {showDelete && (
+          {showDelete && onDelete && (
             <IconButton
-              aria-label="Delete activity"
-              onClick={handleDelete}
-              size="small"
-              color="default"
+              aria-label="delete"
+              onClick={onDelete}
+              sx={{ mt: -1, mr: -1 }}
             >
               <DeleteIcon />
             </IconButton>

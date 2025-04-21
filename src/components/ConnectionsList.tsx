@@ -51,13 +51,21 @@ const ConnectionsList: React.FC = () => {
     loadConnections();
   }, []);
 
+  // Add a refresh interval to keep connections up to date
+  useEffect(() => {
+    // Refresh connections every 10 seconds
+    const intervalId = setInterval(loadConnections, 10000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
   /**
    * Fetches the user's connections from Firebase
    * Updates the connections state and handles loading/error states
    */
   const loadConnections = async () => {
     try {
-      setIsLoading(true);
       setError(null);
       const fetchedConnections = await fetchUserConnections();
       console.log('Fetched connections:', fetchedConnections);

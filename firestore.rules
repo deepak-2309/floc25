@@ -12,6 +12,12 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Helper function to check if a user is connected to another user
+    function isConnectedUser(userId) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/connections/$(userId));
+    }
+
     // Rules for users collection
     match /users/{userId} {
       // Allow users to read and write their own document
@@ -20,20 +26,36 @@ service cloud.firestore {
       // Allow users to read other users' documents (needed for connection verification)
       allow read: if isAuthenticated();
       
-      // Allow users to update connections in other users' documents
-      allow update: if isAuthenticated() 
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections'])
-        && request.resource.data.connections[request.auth.uid] != null;
+      // Allow users to update their own connections
+      allow update: if isAuthenticated() && (
+        // Allow updating own document
+        isOwner(userId) ||
+        // Allow adding connection to other user's document
+        (
+          // Only allow updating the connections field
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections']) &&
+          // Ensure the connection being added includes the current user's ID
+          request.resource.data.connections != null &&
+          request.resource.data.connections[request.auth.uid] != null
+        )
+      );
     }
 
     // Rules for activities collection
     match /activities/{activityId} {
       // Allow users to read and write their own activities
-      allow read, write: if isAuthenticated() 
-        && (
-          resource == null 
-          || resource.data.userId == request.auth.uid
-        );
+      // Also allow reading activities from connected users
+      allow read: if isAuthenticated() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.connections[resource.data.userId] != null
+      );
+      
+      // Allow users to write only their own activities
+      allow write: if isAuthenticated() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid
+      );
     }
   }
 } 

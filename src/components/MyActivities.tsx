@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Fab, CircularProgress } from '@mui/material';
+import { Box, Fab, CircularProgress, Alert, Snackbar } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ActivityCard, { Activity } from './ActivityCard';
 import CreateActivitySheet from './CreateActivitySheet';
-import { writeActivity, fetchUserActivities } from '../firebase';
+import { writeActivity, fetchUserActivities, deleteActivity } from '../firebase';
 
 /**
  * MyActivities Component
@@ -17,6 +17,8 @@ const MyActivities: React.FC = () => {
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Fetch activities when component mounts
   useEffect(() => {
@@ -27,11 +29,12 @@ const MyActivities: React.FC = () => {
   const loadActivities = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const fetchedActivities = await fetchUserActivities();
       setActivities(fetchedActivities);
     } catch (error) {
       console.error('Error fetching activities:', error);
-      // TODO: Show error message to user
+      setError('Failed to load activities');
     } finally {
       setIsLoading(false);
     }
@@ -39,12 +42,22 @@ const MyActivities: React.FC = () => {
 
   /**
    * Handler for deleting an activity
-   * Currently just logs to console, but in a real application
-   * this would make an API call to delete the activity
+   * Deletes the activity from Firestore and updates the local state
    */
-  const handleDelete = (id: string) => {
-    // TODO: Implement delete functionality
-    console.log('Delete activity:', id);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteActivity(id);
+      // Update local state to remove the deleted activity
+      setActivities(activities.filter(activity => activity.id !== id));
+      setSuccessMessage('Activity deleted successfully');
+    } catch (error) {
+      console.error('Error deleting activity:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to delete activity');
+      }
+    }
   };
 
   /**
@@ -61,19 +74,40 @@ const MyActivities: React.FC = () => {
    */
   const handleSubmitActivity = async (activity: Omit<Activity, 'id'>) => {
     try {
+      setError(null);
       const newActivityId = await writeActivity(activity);
       console.log('Activity created with ID:', newActivityId);
       
       // Reload activities to include the new one
       await loadActivities();
+      setSuccessMessage('Activity created successfully');
     } catch (error) {
       console.error('Error creating activity:', error);
-      // TODO: Show error message to user
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to create activity');
+      }
     }
   };
 
   return (
     <Box sx={{ p: 2, position: 'relative', minHeight: '100vh' }}>
+      {/* Error message display */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Success message snackbar */}
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={3000}
+        onClose={() => setSuccessMessage(null)}
+        message={successMessage}
+      />
+
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
@@ -85,7 +119,7 @@ const MyActivities: React.FC = () => {
             key={activity.id}
             activity={activity}
             showDelete={true}
-            onDelete={handleDelete}
+            onDelete={() => handleDelete(activity.id)}
           />
         ))
       )}
