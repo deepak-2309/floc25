@@ -1,122 +1,115 @@
-import React, { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { Activity } from '../types/Activity';
-import { useAuth } from '../contexts/AuthContext';
-import ActivityForm from './ActivityForm';
-import ActivityCard from './ActivityCard';
-import { addActivity } from '../services/firestore';
-import { CircularProgress, Typography, Box, Button } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Fab, CircularProgress } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ActivityCard, { Activity } from './ActivityCard';
+import CreateActivitySheet from './CreateActivitySheet';
+import { writeActivity, fetchUserActivities } from '../firebase';
 
+/**
+ * MyActivities Component
+ * 
+ * Displays a list of activities created by the current user.
+ * Each activity is displayed in a card format with a delete option.
+ * This component uses the ActivityCard component to render each activity.
+ */
 const MyActivities: React.FC = () => {
+  // State for managing the bottom sheet visibility and activities
+  const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchActivities = async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      const activitiesQuery = query(
-        collection(db, 'activities'),
-        where('userId', '==', user.uid),
-        orderBy('datetime', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(activitiesQuery);
-      const activitiesData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Activity[];
-      
-      setActivities(activitiesData);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching activities:', err);
-      setError('Failed to load activities. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch activities when component mounts
   useEffect(() => {
-    fetchActivities();
-  }, [user]);
+    loadActivities();
+  }, []);
 
-  const handleAddActivity = async (activity: Omit<Activity, 'id'>) => {
-    if (!user) return;
-    
+  // Function to load activities from Firebase
+  const loadActivities = async () => {
     try {
-      await addActivity(activity, user.uid, user.email || '');
-      await fetchActivities();
-      setShowForm(false);
-    } catch (err) {
-      console.error('Error adding activity:', err);
-      setError('Failed to add activity. Please try again.');
+      setIsLoading(true);
+      const fetchedActivities = await fetchUserActivities();
+      setActivities(fetchedActivities);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      // TODO: Show error message to user
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  /**
+   * Handler for deleting an activity
+   * Currently just logs to console, but in a real application
+   * this would make an API call to delete the activity
+   */
+  const handleDelete = (id: string) => {
+    // TODO: Implement delete functionality
+    console.log('Delete activity:', id);
+  };
 
-  if (error) {
-    return (
-      <Box textAlign="center" p={2}>
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
-  }
+  /**
+   * Handler for creating a new activity
+   * Opens the bottom sheet for activity creation
+   */
+  const handleCreateActivity = () => {
+    setIsCreateSheetOpen(true);
+  };
+
+  /**
+   * Handler for submitting a new activity
+   * Uses Firebase service to store the new activity
+   */
+  const handleSubmitActivity = async (activity: Omit<Activity, 'id'>) => {
+    try {
+      const newActivityId = await writeActivity(activity);
+      console.log('Activity created with ID:', newActivityId);
+      
+      // Reload activities to include the new one
+      await loadActivities();
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      // TODO: Show error message to user
+    }
+  };
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5" component="h2">
-          My Activities
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => setShowForm(true)}
-        >
-          Add Activity
-        </Button>
-      </Box>
-
-      {showForm && (
-        <Box mb={3}>
-          <ActivityForm
-            onSubmit={handleAddActivity}
-            onCancel={() => setShowForm(false)}
-          />
+    <Box sx={{ p: 2, position: 'relative', minHeight: '100vh' }}>
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
         </Box>
-      )}
-
-      {activities.length === 0 ? (
-        <Typography variant="body1" textAlign="center" mt={4}>
-          You haven't added any activities yet. Click the button above to add your first activity!
-        </Typography>
       ) : (
-        <Box display="flex" flexDirection="column" gap={2}>
-          {activities.map((activity) => (
-            <ActivityCard
-              key={activity.id}
-              activity={activity}
-              onDelete={fetchActivities}
-              showActions={true}
-            />
-          ))}
-        </Box>
+        // Map through activities and render an ActivityCard for each
+        activities.map((activity) => (
+          <ActivityCard
+            key={activity.id}
+            activity={activity}
+            showDelete={true}
+            onDelete={handleDelete}
+          />
+        ))
       )}
+      
+      {/* Floating Action Button for creating new activities */}
+      <Fab
+        color="primary"
+        aria-label="add activity"
+        onClick={handleCreateActivity}
+        sx={{
+          position: 'fixed',
+          bottom: 80,
+          right: 16
+        }}
+      >
+        <AddIcon />
+      </Fab>
+
+      {/* Bottom sheet for creating new activities */}
+      <CreateActivitySheet
+        open={isCreateSheetOpen}
+        onClose={() => setIsCreateSheetOpen(false)}
+        onSubmit={handleSubmitActivity}
+      />
     </Box>
   );
 };
