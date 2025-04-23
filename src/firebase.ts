@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, doc, setDoc, serverTimestamp, getDoc, updateDoc, collection, addDoc, query, where, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, getDoc, updateDoc, collection, addDoc, query, where, getDocs, writeBatch, deleteDoc, deleteField } from 'firebase/firestore';
 import { Activity } from './components/ActivityCard';
 
 const firebaseConfig = {
@@ -66,19 +66,32 @@ export const writeActivity = async (activityData: {
     throw new Error('User must be logged in to create activities');
   }
 
+  // Get user data to include username if available
+  const userRef = doc(db, 'users', currentUser.uid);
+  const userDoc = await getDoc(userRef);
+  const userData = userDoc.data();
+
   const docRef = await addDoc(collection(db, 'activities'), {
     ...activityData,
     dateTime: activityData.dateTime.toISOString(),
     createdAt: new Date().toISOString(),
     userId: currentUser.uid,
-    createdBy: currentUser.email || 'Anonymous'
+    createdBy: currentUser.email || 'Anonymous',
+    // Add the creator as a joiner by default
+    joiners: {
+      [currentUser.uid]: {
+        email: currentUser.email,
+        username: userData?.username || null,
+        joinedAt: new Date().toISOString()
+      }
+    }
   });
 
   return docRef.id;
 };
 
 /**
- * Fetches all activities created by the current user
+ * Fetches all activities that the current user has created or joined
  * @returns Array of activities
  * @throws Error if user is not authenticated
  */
@@ -88,15 +101,51 @@ export const fetchUserActivities = async () => {
     throw new Error('User must be logged in to fetch activities');
   }
 
-  const activitiesRef = collection(db, 'activities');
-  const q = query(activitiesRef, where('userId', '==', currentUser.uid));
-  const querySnapshot = await getDocs(q);
-
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    dateTime: new Date(doc.data().dateTime) // Convert ISO string back to Date object
-  })) as Activity[];
+  try {
+    const activitiesRef = collection(db, 'activities');
+    
+    // Get activities created by the user
+    const createdActivitiesQuery = query(
+      activitiesRef, 
+      where('userId', '==', currentUser.uid)
+    );
+    const createdActivitiesSnapshot = await getDocs(createdActivitiesQuery);
+    
+    // Get activities where the user is a joiner
+    const joinedActivitiesQuery = query(
+      activitiesRef,
+      where(`joiners.${currentUser.uid}`, '!=', null)
+    );
+    const joinedActivitiesSnapshot = await getDocs(joinedActivitiesQuery);
+    
+    // Combine and deduplicate activities
+    const activitiesMap = new Map();
+    
+    // Add created activities
+    createdActivitiesSnapshot.docs.forEach(doc => {
+      activitiesMap.set(doc.id, {
+        id: doc.id,
+        ...doc.data(),
+        dateTime: new Date(doc.data().dateTime)
+      });
+    });
+    
+    // Add joined activities
+    joinedActivitiesSnapshot.docs.forEach(doc => {
+      if (!activitiesMap.has(doc.id)) {
+        activitiesMap.set(doc.id, {
+          id: doc.id,
+          ...doc.data(),
+          dateTime: new Date(doc.data().dateTime)
+        });
+      }
+    });
+    
+    return Array.from(activitiesMap.values()) as Activity[];
+  } catch (error) {
+    console.error('Error fetching user activities:', error);
+    throw error;
+  }
 };
 
 interface UserConnection {
@@ -301,7 +350,7 @@ export const deleteActivity = async (activityId: string) => {
 };
 
 /**
- * Fetches activities created by the user's connections
+ * Fetches activities created by the user's connections that the user hasn't joined
  * @returns Array of activities from connected users
  * @throws Error if user is not authenticated
  */
@@ -328,26 +377,29 @@ export const fetchConnectionsActivities = async () => {
     const activitiesRef = collection(db, 'activities');
     const q = query(
       activitiesRef,
-      where('userId', 'in', connectedUserIds),
-      // You might want to add more query constraints here, like ordering by date
-      // orderBy('dateTime', 'desc')
+      where('userId', 'in', connectedUserIds)
     );
 
     const querySnapshot = await getDocs(q);
 
-    // Map the activities and include the creator's username/email
-    return Promise.all(querySnapshot.docs.map(async doc => {
-      const activityData = doc.data();
-      const creatorId = activityData.userId;
-      const creatorInfo = userData.connections[creatorId];
+    // Filter and map the activities
+    const activities = querySnapshot.docs
+      .map(doc => {
+        const activityData = doc.data() as Omit<Activity, 'id'>;
+        const creatorId = activityData.userId;
+        const creatorInfo = userData.connections[creatorId];
 
-      return {
-        id: doc.id,
-        ...activityData,
-        dateTime: new Date(activityData.dateTime),
-        creatorName: creatorInfo.username || creatorInfo.email // Use username if available, otherwise use email
-      };
-    }));
+        return {
+          ...activityData,
+          id: doc.id,
+          dateTime: new Date(activityData.dateTime),
+          creatorName: creatorInfo.username || creatorInfo.email
+        } as Activity;
+      })
+      // Filter out activities where the current user is already a joiner
+      .filter(activity => !activity.joiners || !activity.joiners[currentUser.uid]);
+
+    return activities;
   } catch (error) {
     console.error('Error fetching connections activities:', error);
     throw error;
@@ -392,4 +444,74 @@ export const updateActivity = async (activity: Activity) => {
     console.error('Error updating activity:', error);
     throw error;
   }
+};
+
+/**
+ * Joins an activity by adding the current user to its joiners list
+ * @param activityId The ID of the activity to join
+ * @throws Error if user is not authenticated
+ */
+export const joinActivity = async (activityId: string) => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('User must be logged in to join activities');
+  }
+
+  try {
+    // Get user data to include username if available
+    const userRef = doc(db, 'users', currentUser.uid);
+    const userDoc = await getDoc(userRef);
+    const userData = userDoc.data();
+
+    const activityRef = doc(db, 'activities', activityId);
+    await updateDoc(activityRef, {
+      [`joiners.${currentUser.uid}`]: {
+        email: currentUser.email,
+        username: userData?.username || null,
+        joinedAt: new Date().toISOString()
+      }
+    });
+
+    console.log('Successfully joined activity');
+  } catch (error) {
+    console.error('Error joining activity:', error);
+    throw error;
+  }
+};
+
+/**
+ * Leaves an activity by removing the current user from its joiners list
+ * @param activityId The ID of the activity to leave
+ * @throws Error if user is not authenticated
+ */
+export const leaveActivity = async (activityId: string) => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('User must be logged in to leave activities');
+  }
+
+  try {
+    const activityRef = doc(db, 'activities', activityId);
+    await updateDoc(activityRef, {
+      [`joiners.${currentUser.uid}`]: deleteField()
+    });
+
+    console.log('Successfully left activity');
+  } catch (error) {
+    console.error('Error leaving activity:', error);
+    throw error;
+  }
+};
+
+/**
+ * Checks if the current user has joined an activity
+ * @param activity The activity to check
+ * @returns boolean indicating if the current user has joined
+ */
+export const hasUserJoined = (activity: Activity): boolean => {
+  const currentUser = auth.currentUser;
+  if (!currentUser || !activity.joiners) {
+    return false;
+  }
+  return !!activity.joiners[currentUser.uid];
 }; 

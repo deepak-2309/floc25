@@ -4,7 +4,15 @@ import AddIcon from '@mui/icons-material/Add';
 import ActivityCard, { Activity } from './ActivityCard';
 import CreateActivitySheet from './CreateActivitySheet';
 import EditActivitySheet from './EditActivitySheet';
-import { writeActivity, fetchUserActivities, deleteActivity, updateActivity } from '../firebase';
+import { 
+  writeActivity, 
+  fetchUserActivities, 
+  deleteActivity, 
+  updateActivity,
+  joinActivity,
+  leaveActivity,
+  hasUserJoined
+} from '../firebase';
 
 /**
  * MyActivities Component
@@ -34,7 +42,14 @@ const MyActivities: React.FC = () => {
       setIsLoading(true);
       setError(null);
       const fetchedActivities = await fetchUserActivities();
-      setActivities(fetchedActivities);
+      
+      // Filter out past activities and sort by date (earliest first)
+      const now = new Date();
+      const filteredAndSortedActivities = fetchedActivities
+        .filter(activity => activity.dateTime > now)
+        .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+      
+      setActivities(filteredAndSortedActivities);
     } catch (error) {
       console.error('Error fetching activities:', error);
       setError('Failed to load activities');
@@ -130,6 +145,35 @@ const MyActivities: React.FC = () => {
     }
   };
 
+  /**
+   * Handler for joining/leaving an activity
+   */
+  const handleJoinToggle = async (activity: Activity) => {
+    try {
+      setError(null);
+      setSuccessMessage(null); // Clear any existing message
+      const isJoined = hasUserJoined(activity);
+      
+      if (isJoined) {
+        await leaveActivity(activity.id);
+        setSuccessMessage('Left activity successfully');
+      } else {
+        await joinActivity(activity.id);
+        setSuccessMessage('Joined activity successfully');
+      }
+      
+      // Reload activities to update joiners list
+      await loadActivities();
+    } catch (error) {
+      console.error('Error toggling activity join:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to update activity participation');
+      }
+    }
+  };
+
   return (
     <Box sx={{ p: 2, position: 'relative', minHeight: '100vh' }}>
       {/* Error message display */}
@@ -142,7 +186,7 @@ const MyActivities: React.FC = () => {
       {/* Success message snackbar */}
       <Snackbar
         open={!!successMessage}
-        autoHideDuration={3000}
+        autoHideDuration={2000}
         onClose={() => setSuccessMessage(null)}
         message={successMessage}
       />
@@ -157,9 +201,9 @@ const MyActivities: React.FC = () => {
           <ActivityCard
             key={activity.id}
             activity={activity}
-            showDelete={true}
-            onDelete={() => handleDelete(activity.id)}
             onEdit={() => handleEdit(activity)}
+            onJoinToggle={() => handleJoinToggle(activity)}
+            isJoined={hasUserJoined(activity)}
           />
         ))
       )}
@@ -195,6 +239,7 @@ const MyActivities: React.FC = () => {
           }}
           onSubmit={handleSubmitEdit}
           activity={editingActivity}
+          onDelete={() => handleDelete(editingActivity.id)}
         />
       )}
     </Box>

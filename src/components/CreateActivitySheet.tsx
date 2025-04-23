@@ -32,7 +32,8 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
       location: formData.get('location') as string,
       dateTime: new Date(selectedDateTime),
       description: formData.get('description') as string,
-      createdBy: 'You' // Hardcoded for now
+      userId: '', // This will be set by the writeActivity function in firebase.ts
+      createdBy: 'You' // This will be overwritten by the writeActivity function
     };
 
     onSubmit(newActivity);

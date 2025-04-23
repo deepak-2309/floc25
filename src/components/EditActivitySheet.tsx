@@ -15,13 +15,15 @@ interface EditActivitySheetProps {
   onClose: () => void;
   onSubmit: (activity: Activity) => void;
   activity: Activity;
+  onDelete?: () => void;  // Optional delete handler
 }
 
 const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
   open,
   onClose,
   onSubmit,
-  activity
+  activity,
+  onDelete
 }) => {
   const [selectedDateTime, setSelectedDateTime] = useState<string>('');
 
@@ -46,6 +48,13 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
 
     onSubmit(updatedActivity);
     onClose();
+  };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete();
+      onClose();
+    }
   };
 
   return (
@@ -100,7 +109,7 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
             }}
           />
 
-        <TextField
+          <TextField
             fullWidth
             label="Description"
             name="description"
@@ -117,6 +126,16 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
             sx={{ mt: 2 }}
           >
             Save Changes
+          </Button>
+
+          <Button
+            onClick={handleDelete}
+            variant="contained"
+            color="error"
+            fullWidth
+            sx={{ mt: 1 }}
+          >
+            Delete Activity
           </Button>
         </Box>
       </Box>

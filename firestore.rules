@@ -18,6 +18,17 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/users/$(request.auth.uid)/connections/$(userId));
     }
 
+    // Helper function to check if only joiners field is being modified
+    function isOnlyJoinersUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['joiners']);
+    }
+
+    // Helper function to check if user is a joiner of the activity
+    function isJoiner(activityData) {
+      return activityData.joiners != null && 
+        activityData.joiners[request.auth.uid] != null;
+    }
+
     // Rules for users collection
     match /users/{userId} {
       // Allow users to read and write their own document
@@ -43,19 +54,41 @@ service cloud.firestore {
 
     // Rules for activities collection
     match /activities/{activityId} {
-      // Allow users to read and write their own activities
-      // Also allow reading activities from connected users
+      // Allow users to read activities if they:
+      // 1. Created the activity
+      // 2. Are a joiner of the activity
+      // 3. Are connected to the activity creator
       allow read: if isAuthenticated() && (
         resource == null ||
         resource.data.userId == request.auth.uid ||
+        isJoiner(resource.data) ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.connections[resource.data.userId] != null
       );
       
-      // Allow users to write only their own activities
-      allow write: if isAuthenticated() && (
-        resource == null ||
-        resource.data.userId == request.auth.uid
+      // Allow users to create new activities
+      allow create: if isAuthenticated();
+
+      // Allow users to update activities if they:
+      // 1. Own the activity (full update)
+      // 2. Are connected to the owner (joiners update only)
+      allow update: if isAuthenticated() && (
+        // Allow full updates if user owns the activity
+        resource.data.userId == request.auth.uid ||
+        // Allow joiners updates if user is connected to activity owner
+        (
+          isOnlyJoinersUpdate() &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.connections[resource.data.userId] != null
+        )
       );
+
+      // Allow users to delete only their own activities
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Allow listing activities if the user:
+      // 1. Created the activity
+      // 2. Is a joiner of the activity
+      // 3. Is connected to the activity creator
+      allow list: if isAuthenticated();
     }
   }
 } 
