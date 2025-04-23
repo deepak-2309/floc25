@@ -116,7 +116,6 @@ const FriendsActivities: React.FC = () => {
           <ActivityCard
             key={activity.id}
             activity={activity}
-            creatorName={activity.creatorName}
             onJoinToggle={() => handleJoinToggle(activity)}
             isJoined={hasUserJoined(activity)}
           />

@@ -70,13 +70,14 @@ export const writeActivity = async (activityData: {
   const userRef = doc(db, 'users', currentUser.uid);
   const userDoc = await getDoc(userRef);
   const userData = userDoc.data();
+  const creatorName = userData?.username || 'Anonymous';
 
   const docRef = await addDoc(collection(db, 'activities'), {
     ...activityData,
     dateTime: activityData.dateTime.toISOString(),
     createdAt: new Date().toISOString(),
     userId: currentUser.uid,
-    createdBy: currentUser.email || 'Anonymous',
+    createdBy: creatorName,
     // Add the creator as a joiner by default
     joiners: {
       [currentUser.uid]: {
@@ -393,7 +394,7 @@ export const fetchConnectionsActivities = async () => {
           ...activityData,
           id: doc.id,
           dateTime: new Date(activityData.dateTime),
-          creatorName: creatorInfo.username || creatorInfo.email
+          createdBy: creatorInfo.username || creatorInfo.email
         } as Activity;
       })
       // Filter out activities where the current user is already a joiner
