@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Button, Container, Paper, Typography, CircularProgress } from '@mui/material';
 import { signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase';
+import { auth, googleProvider } from '../firebase/config';
 import GoogleIcon from '@mui/icons-material/Google';
 
 function Login() {

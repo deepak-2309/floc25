@@ -6,14 +6,16 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import PersonIcon from '@mui/icons-material/Person';
 import PeopleIcon from '@mui/icons-material/People';
 import LocalActivityIcon from '@mui/icons-material/LocalActivity';
-import { auth, updateUserData } from './firebase';
+import { auth } from './firebase/config';
 import { signOut, onAuthStateChanged, User } from 'firebase/auth';
+import theme from './theme';
 
 // Component imports for different pages/views
 import Login from './components/Login';
 import MyActivities from './components/MyActivities';
 import FriendsActivities from './components/FriendsActivities';
 import Profile from './components/Profile';
+import { updateUserData } from './firebase/authUtils';
 
 // Define all route paths in one place for easy maintenance
 const ROUTES = {

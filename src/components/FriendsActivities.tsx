@@ -6,7 +6,7 @@ import {
   joinActivity, 
   leaveActivity, 
   hasUserJoined 
-} from '../firebase';
+} from '../firebase/activityActions';
 
 /**
  * FriendsActivities Component

@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, Typography, IconButton, Box, Button, Tooltip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import GroupIcon from '@mui/icons-material/Group';
-import { auth } from '../firebase';
+import { auth } from '../firebase/config';
 
 /**
  * Interface representing an activity in the application.

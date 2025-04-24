@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, TextField, Button, Paper, IconButton, Alert } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import { auth, db, updateUsername } from '../firebase';
+import { auth, db } from '../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import ConnectionsList from './ConnectionsList';
+import { updateUsername } from '../firebase/userActions';
 
 /**
  * Profile Component
