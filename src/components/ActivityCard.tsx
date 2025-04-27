@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, Typography, IconButton, Box, Button, Tooltip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import GroupIcon from '@mui/icons-material/Group';
@@ -76,6 +76,12 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
       .join(', ')
     : '';
 
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+
+  const handleTooltipToggle = () => {
+    setTooltipOpen(!tooltipOpen);
+  };
+
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
@@ -125,8 +131,8 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           <Typography color="textSecondary" variant="body2">
             by {activity.createdBy}
           </Typography>
-          <Tooltip title={joinersList} placement="top">
-            <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+          <Tooltip title={joinersList} placement="top" open={tooltipOpen} onClose={() => setTooltipOpen(false)}>
+            <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={handleTooltipToggle}>
               <GroupIcon sx={{ mr: 0.5 }} />
               <Typography variant="body2">
                 {joinersCount}
