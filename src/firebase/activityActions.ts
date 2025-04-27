@@ -114,7 +114,8 @@ export const deleteActivity = async (activityId: string) => {
 };
 
 /**
- * Fetches activities created by the user's connections that the user hasn't joined
+ * Fetches activities that are either created by or joined by the user's connections 
+ * that the user hasn't joined
  * @returns Array of activities from connected users
  * @throws Error if user is not authenticated
  */
@@ -129,33 +130,66 @@ export const fetchConnectionsActivities = async () => {
 
     const connectedUserIds = Object.keys(userData.connections);
     if (connectedUserIds.length === 0) {
-        return []; // Return early if no connected user IDs
+      return []; // Return early if no connected user IDs
     }
 
     const activitiesRef = collection(db, 'activities');
-    const q = query(
+    
+    // Get activities created by connections
+    const createdByConnectionsQuery = query(
       activitiesRef,
       where('userId', 'in', connectedUserIds)
     );
+    const createdByConnectionsSnapshot = await getDocs(createdByConnectionsQuery);
 
-    const querySnapshot = await getDocs(q);
+    // Get activities joined by connections
+    // We need to do this in batches since we can't use array-contains-any with arrays
+    const joinedByConnectionsPromises = connectedUserIds.map(connectionId => {
+      const joinedQuery = query(
+        activitiesRef,
+        where(`joiners.${connectionId}`, '!=', null)
+      );
+      return getDocs(joinedQuery);
+    });
+    const joinedByConnectionsSnapshots = await Promise.all(joinedByConnectionsPromises);
 
-    const activities = querySnapshot.docs
-      .map(doc => {
-        const activityData = doc.data() as Omit<Activity, 'id'>;
-        const creatorId = activityData.userId;
-        const creatorInfo = userData.connections[creatorId];
+    // Combine all activities into a map to deduplicate
+    const activitiesMap = new Map();
 
-        // Handle case where creatorInfo might be missing (though unlikely if connections are synced)
-        const createdByName = creatorInfo ? (creatorInfo.username || creatorInfo.email) : 'Unknown User';
+    // Process activities created by connections
+    createdByConnectionsSnapshot.docs.forEach(doc => {
+      const activityData = doc.data();
+      const creatorId = activityData.userId;
+      const creatorInfo = userData.connections[creatorId];
+      const createdByName = creatorInfo ? (creatorInfo.username || creatorInfo.email) : 'Unknown User';
 
-        return {
-          ...activityData,
-          id: doc.id,
-          dateTime: new Date(activityData.dateTime),
-          createdBy: createdByName
-        } as Activity;
-      })
+      activitiesMap.set(doc.id, {
+        ...activityData,
+        id: doc.id,
+        dateTime: new Date(activityData.dateTime),
+        createdBy: createdByName,
+        allowJoin: true // Allow joining activities created by connections
+      });
+    });
+
+    // Process activities joined by connections
+    joinedByConnectionsSnapshots.forEach(snapshot => {
+      snapshot.docs.forEach(doc => {
+        if (!activitiesMap.has(doc.id)) {
+          const activityData = doc.data();
+          // For activities only joined by connections (not created), don't allow current user to join
+          activitiesMap.set(doc.id, {
+            ...activityData,
+            id: doc.id,
+            dateTime: new Date(activityData.dateTime),
+            allowJoin: false // Don't allow joining activities only joined by connections
+          });
+        }
+      });
+    });
+
+    // Convert map to array and filter out activities user has already joined
+    const activities = Array.from(activitiesMap.values())
       .filter(activity => !activity.joiners || !activity.joiners[currentUser.uid]);
 
     return activities;

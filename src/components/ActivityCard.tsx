@@ -16,6 +16,7 @@ export interface Activity {
   location: string;    // Location where the activity will take place
   dateTime: Date;      // Date and time when the activity is scheduled
   description: string; // Description of the activity
+  allowJoin?: boolean; // Whether the current user is allowed to join this activity
   joiners?: {          // Map of users who have joined the activity
     [userId: string]: {
       email: string;
@@ -104,7 +105,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
             )}
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {onJoinToggle && !isCreator && (
+            {onJoinToggle && !isCreator && activity.allowJoin !== false && (
               <Button
                 variant={isJoined ? "outlined" : "contained"}
                 onClick={onJoinToggle}
