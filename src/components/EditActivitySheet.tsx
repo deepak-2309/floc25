@@ -30,7 +30,8 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
   // Initialize form with activity data when opened
   useEffect(() => {
     if (open && activity) {
-      setSelectedDateTime(activity.dateTime.toISOString().slice(0, 16));
+      const localDateTime = new Date(activity.dateTime).toLocaleString('sv-SE', { timeZoneName: 'short' }).slice(0, 16);
+      setSelectedDateTime(localDateTime);
     }
   }, [open, activity]);
 
