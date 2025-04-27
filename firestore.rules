@@ -18,6 +18,11 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/users/$(request.auth.uid)/connections/$(userId));
     }
 
+    // Helper function to check if only connections field is being modified
+    function isOnlyConnectionsUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections']);
+    }
+
     // Helper function to check if only joiners field is being modified
     function isOnlyJoinersUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['joiners']);
@@ -37,17 +42,23 @@ service cloud.firestore {
       // Allow users to read other users' documents (needed for connection verification)
       allow read: if isAuthenticated();
       
-      // Allow users to update their own connections
+      // Allow users to update their own connections or remove connections
       allow update: if isAuthenticated() && (
         // Allow updating own document
         isOwner(userId) ||
-        // Allow adding connection to other user's document
+        // Allow modifying connections (adding or removing)
         (
           // Only allow updating the connections field
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections']) &&
-          // Ensure the connection being added includes the current user's ID
-          request.resource.data.connections != null &&
-          request.resource.data.connections[request.auth.uid] != null
+          isOnlyConnectionsUpdate() &&
+          (
+            // For adding connections: ensure the connection includes the current user's ID
+            (
+              request.resource.data.connections != null &&
+              request.resource.data.connections[request.auth.uid] != null
+            ) ||
+            // For removing connections: ensure the current user had a connection
+            resource.data.connections[request.auth.uid] != null
+          )
         )
       );
     }

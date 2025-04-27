@@ -15,9 +15,11 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
+  ListItemSecondaryAction,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { addConnection, fetchUserConnections } from '../firebase/userActions';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { addConnection, fetchUserConnections, removeConnection } from '../firebase/userActions';
 
 /**
  * Interface representing a user connection in the application.
@@ -46,6 +48,9 @@ const ConnectionsList: React.FC = () => {
   const [newConnectionEmail, setNewConnectionEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [connectionToDelete, setConnectionToDelete] = useState<Connection | null>(null);
 
   // Load connections when component mounts
   useEffect(() => {
@@ -125,6 +130,60 @@ const ConnectionsList: React.FC = () => {
     }
   };
 
+  /**
+   * Formats the connection date in a readable format
+   * @param timestamp Firebase timestamp
+   * @returns Formatted date string
+   */
+  const formatConnectionDate = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate();
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  /**
+   * Opens the delete confirmation dialog
+   * @param connection The connection to be deleted
+   */
+  const openDeleteDialog = (connection: Connection) => {
+    setConnectionToDelete(connection);
+    setDeleteDialogOpen(true);
+  };
+
+  /**
+   * Closes the delete confirmation dialog
+   */
+  const closeDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setConnectionToDelete(null);
+  };
+
+  /**
+   * Handles removing a connection after confirmation
+   */
+  const handleConfirmDelete = async () => {
+    if (!connectionToDelete) return;
+
+    try {
+      setError(null);
+      await removeConnection(connectionToDelete.userId);
+      setSuccessMessage('Connection removed successfully');
+      await loadConnections();
+      closeDeleteDialog();
+    } catch (error) {
+      console.error('Error removing connection:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to remove connection');
+      }
+    }
+  };
+
   return (
     <Box sx={{ mt: 4 }}>
       {/* Header section with title and add button */}
@@ -138,6 +197,14 @@ const ConnectionsList: React.FC = () => {
           <AddIcon />
         </IconButton>
       </Box>
+
+      {/* Success message snackbar */}
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={3000}
+        onClose={() => setSuccessMessage(null)}
+        message={successMessage}
+      />
 
       {/* Error message display */}
       {error && (
@@ -160,12 +227,38 @@ const ConnectionsList: React.FC = () => {
       ) : (
         // List of connections
         <List>
-          {connections.map((connection) => (
+          {connections
+            .sort((a, b) => b.connectedAt?.toDate() - a.connectedAt?.toDate())
+            .map((connection) => (
             <ListItem key={connection.id}>
               <ListItemText
                 primary={connection.username || connection.email}
-                secondary={!connection.username && connection.email}
+                secondary={
+                  <>
+                    {!connection.username && connection.email}
+                    {connection.connectedAt && (
+                      <Typography
+                        component="span"
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ display: 'block' }}
+                      >
+                        Connected since {formatConnectionDate(connection.connectedAt)}
+                      </Typography>
+                    )}
+                  </>
+                }
               />
+              <ListItemSecondaryAction>
+                <IconButton
+                  edge="end"
+                  aria-label="remove connection"
+                  onClick={() => openDeleteDialog(connection)}
+                  size="small"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </ListItemSecondaryAction>
             </ListItem>
           ))}
         </List>
@@ -215,6 +308,43 @@ const ConnectionsList: React.FC = () => {
             disabled={!newConnectionEmail.trim() || isSubmitting}
           >
             {isSubmitting ? 'Adding...' : 'Add'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={closeDeleteDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Remove Connection</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to remove this connection?
+          </Typography>
+          {connectionToDelete && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle1">
+                {connectionToDelete.username || 'No username'}
+              </Typography>
+              <Typography color="text.secondary">
+                {connectionToDelete.email}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+          >
+            Remove
           </Button>
         </DialogActions>
       </Dialog>

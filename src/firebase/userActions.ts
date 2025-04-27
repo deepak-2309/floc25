@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where, writeBatch, deleteField } from 'firebase/firestore';
 import { db } from './config'; // Import from config
 import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils'; // Import helpers
 
@@ -130,6 +130,42 @@ export const updateUsername = async (newUsername: string) => {
     console.log('Username updated successfully in all locations');
   } catch (error) {
     console.error('Error updating username:', error);
+    throw error;
+  }
+};
+
+/**
+ * Removes a connection between the current user and the specified user
+ * @param targetUserId The ID of the user to remove from connections
+ * @throws Error if user is not authenticated or connection doesn't exist
+ */
+export const removeConnection = async (targetUserId: string) => {
+  const currentUser = getCurrentUserOrThrow();
+  const currentUserData = await getCurrentUserData();
+
+  try {
+    if (!currentUserData.connections || !currentUserData.connections[targetUserId]) {
+      throw new Error('Connection does not exist');
+    }
+
+    const currentUserRef = doc(db, 'users', currentUser.uid);
+    const targetUserRef = doc(db, 'users', targetUserId);
+    const batch = writeBatch(db);
+
+    // Remove connection from current user's document
+    batch.update(currentUserRef, {
+      [`connections.${targetUserId}`]: deleteField()
+    });
+
+    // Remove connection from target user's document
+    batch.update(targetUserRef, {
+      [`connections.${currentUser.uid}`]: deleteField()
+    });
+
+    await batch.commit();
+    console.log('Connection removed successfully');
+  } catch (error) {
+    console.error('Error removing connection:', error);
     throw error;
   }
 }; 
