@@ -19,7 +19,7 @@ import { updateUserData } from './firebase/authUtils';
 
 // Define all route paths in one place for easy maintenance
 const ROUTES = {
-  MY_ACTIVITIES: '/my-activities',
+  MY_ACTIVITIES: '/my-plans',
   FRIENDS: '/friends-activities',
   PROFILE: '/profile',
   LOGIN: '/login'
@@ -95,7 +95,7 @@ function App() {
       {/* Top App Bar */}
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 0 }}>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 0, fontFamily: 'Pacifico' }}>
             floc
           </Typography>
           <Typography 
@@ -105,13 +105,14 @@ function App() {
               flexGrow: 1, 
               fontStyle: 'italic',
               textAlign: 'center',
-              color: 'rgba(255, 255, 255, 0.9)'
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontFamily: 'Pacifico'
             }}
           >
-            Join your friends, IRL!
+            join your friends, irl!
           </Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Sign Out
+          <Button color="inherit" onClick={handleLogout} sx={{ textTransform: 'none' }}>
+            sign out
           </Button>
         </Toolbar>
       </AppBar>
@@ -144,7 +145,7 @@ function App() {
         }}
       >
         <BottomNavigationAction
-          label="My Activities"
+          label="My Plans"
           icon={<LocalActivityIcon />}
           value={ROUTES.MY_ACTIVITIES}
         />
