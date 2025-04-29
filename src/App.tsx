@@ -95,8 +95,20 @@ function App() {
       {/* Top App Bar */}
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 0 }}>
             floc
+          </Typography>
+          <Typography 
+            variant="body1" 
+            component="div" 
+            sx={{ 
+              flexGrow: 1, 
+              fontStyle: 'italic',
+              textAlign: 'center',
+              color: 'rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            Join your friends, IRL!
           </Typography>
           <Button color="inherit" onClick={handleLogout}>
             Sign Out
