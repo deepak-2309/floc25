@@ -5,6 +5,7 @@ import { auth, db } from '../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import ConnectionsList from './ConnectionsList';
 import { updateUsername } from '../firebase/userActions';
+import PastActivities from './PastActivities';
 
 /**
  * Profile Component
@@ -83,10 +84,10 @@ function Profile() {
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ p: 2, pb: 10 }}>
       {/* Profile Information Card */}
-      <Paper sx={{ p: 2 }}>
-        <Box sx={{ mb: 2 }}>
+      <Paper sx={{ p: 2, mb: 4 }}>
+        <Box sx={{ mb: 1 }}>
           {/* Error Alert - Shows any error messages */}
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -149,7 +150,14 @@ function Profile() {
       </Paper>
 
       {/* Connections List Component */}
-      <ConnectionsList />
+      <Paper sx={{ p: 2, mb: 4 }}>
+        <ConnectionsList />
+      </Paper>
+
+      {/* Past Activities Component */}
+      <Paper sx={{ p: 2 }}>
+        <PastActivities />
+      </Paper>
     </Box>
   );
 }

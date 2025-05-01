@@ -293,4 +293,63 @@ export const hasUserJoined = (activity: Activity): boolean => {
     return false;
   }
   return !!activity.joiners[currentUser.uid];
+};
+
+/**
+ * Fetches past activities for the current user (both created and joined)
+ * @returns Array of past activities
+ * @throws Error if user is not authenticated
+ */
+export const fetchPastActivities = async () => {
+  const currentUser = getCurrentUserOrThrow();
+
+  try {
+    const activitiesRef = collection(db, 'activities');
+    const createdActivitiesQuery = query(
+      activitiesRef,
+      where('userId', '==', currentUser.uid)
+    );
+    const createdActivitiesSnapshot = await getDocs(createdActivitiesQuery);
+
+    const joinedActivitiesQuery = query(
+      activitiesRef,
+      where(`joiners.${currentUser.uid}`, '!=', null)
+    );
+    const joinedActivitiesSnapshot = await getDocs(joinedActivitiesQuery);
+
+    const activitiesMap = new Map();
+    const now = new Date();
+
+    // Process created activities
+    createdActivitiesSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const activityDate = new Date(data.dateTime);
+      if (activityDate < now) {
+        activitiesMap.set(doc.id, {
+          id: doc.id,
+          ...data,
+          dateTime: activityDate
+        });
+      }
+    });
+
+    // Process joined activities
+    joinedActivitiesSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const activityDate = new Date(data.dateTime);
+      if (activityDate < now && !activitiesMap.has(doc.id)) {
+        activitiesMap.set(doc.id, {
+          id: doc.id,
+          ...data,
+          dateTime: activityDate
+        });
+      }
+    });
+
+    return Array.from(activitiesMap.values())
+      .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime()); // Sort by most recent first
+  } catch (error) {
+    console.error('Error fetching past activities:', error);
+    throw error;
+  }
 }; 

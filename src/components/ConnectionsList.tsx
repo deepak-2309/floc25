@@ -139,9 +139,9 @@ const ConnectionsList: React.FC = () => {
     if (!timestamp) return '';
     const date = timestamp.toDate();
     return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -185,10 +185,10 @@ const ConnectionsList: React.FC = () => {
   };
 
   return (
-    <Box sx={{ mt: 4 }}>
-      {/* Header section with title and add button */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">Connections</Typography>
+    <Box>
+      {/* Header section with title, count and add button */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h6">Connections ({connections.length})</Typography>
         <IconButton
           color="primary"
           onClick={() => setIsAddDialogOpen(true)}
@@ -221,47 +221,73 @@ const ConnectionsList: React.FC = () => {
         </Box>
       ) : connections.length === 0 ? (
         // Empty state message
-        <Typography color="text.secondary" align="center">
+        <Typography color="textSecondary" align="center">
           No connections yet
         </Typography>
       ) : (
-        // List of connections
-        <List>
-          {connections
-            .sort((a, b) => b.connectedAt?.toDate() - a.connectedAt?.toDate())
-            .map((connection) => (
-            <ListItem key={connection.id}>
-              <ListItemText
-                primary={connection.username || connection.email}
-                secondary={
-                  <>
-                    {!connection.username && connection.email}
-                    {connection.connectedAt && (
-                      <Typography
-                        component="span"
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ display: 'block' }}
-                      >
-                        Connected since {formatConnectionDate(connection.connectedAt)}
+        // List of connections with fixed height and scrolling (shows 3 items at a time)
+        <Box sx={{ 
+          maxHeight: '144px', // Height to show exactly 3 items (48px per item)
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: '#f1f1f1',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#888',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: '#555',
+          },
+        }}>
+          <List dense>
+            {connections
+              .sort((a, b) => b.connectedAt?.toDate() - a.connectedAt?.toDate())
+              .map((connection) => (
+              <ListItem 
+                key={connection.id}
+                sx={{ 
+                  py: 0.5,
+                  minHeight: '48px'
+                }}
+              >
+                {/* Connection details with inline date */}
+                <ListItemText
+                  primary={
+                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="subtitle1" component="span">
+                        {connection.username || connection.email}
                       </Typography>
-                    )}
-                  </>
-                }
-              />
-              <ListItemSecondaryAction>
-                <IconButton
-                  edge="end"
-                  aria-label="remove connection"
-                  onClick={() => openDeleteDialog(connection)}
-                  size="small"
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </ListItemSecondaryAction>
-            </ListItem>
-          ))}
-        </List>
+                      {/* Connection date in compact format */}
+                      {connection.connectedAt && (
+                        <Typography component="span" variant="body2" color="text.secondary">
+                          (since {formatConnectionDate(connection.connectedAt)})
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                  secondary={!connection.username && connection.email}
+                  secondaryTypographyProps={{ variant: "body2" }}
+                />
+                {/* Delete connection button */}
+                <ListItemSecondaryAction>
+                  <IconButton
+                    edge="end"
+                    aria-label="remove connection"
+                    onClick={() => openDeleteDialog(connection)}
+                    size="small"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </ListItemSecondaryAction>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
       )}
 
       {/* Add Connection Dialog */}
