@@ -141,7 +141,7 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
                 color="primary"
               />
             }
-            label="Make this activity private (only visible to you)"
+            label="Mark as private"
           />
 
           <Button

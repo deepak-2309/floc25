@@ -113,7 +113,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
                 color="primary"
               />
             }
-            label="Make this activity private (only visible to you)"
+            label="Mark as private"
           />
 
           <Button
