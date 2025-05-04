@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, Typography, IconButton, Box, Button, Tooltip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import GroupIcon from '@mui/icons-material/Group';
+import LockIcon from '@mui/icons-material/Lock';
 import { auth } from '../firebase/config';
 
 /**
@@ -17,6 +18,7 @@ export interface Activity {
   dateTime: Date;      // Date and time when the activity is scheduled
   description: string; // Description of the activity
   allowJoin?: boolean; // Whether the current user is allowed to join this activity
+  isPrivate?: boolean; // Whether the activity is marked as private (not visible to connections)
   joiners?: {          // Map of users who have joined the activity
     [userId: string]: {
       email: string;
@@ -89,8 +91,11 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         {/* Header section with activity name and action buttons */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
-            <Typography variant="h6" component="div">
+            <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center' }}>
               {activity.name}
+              {activity.isPrivate && (
+                <LockIcon fontSize="small" sx={{ ml: 1, color: 'text.secondary' }} />
+              )}
             </Typography>
             <Typography variant="body2" color="textSecondary" gutterBottom>
               {activity.location}

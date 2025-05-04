@@ -5,7 +5,9 @@ import {
   TextField,
   Button,
   Typography,
-  IconButton
+  IconButton,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { Activity } from './ActivityCard';
@@ -22,6 +24,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
   onSubmit
 }) => {
   const [selectedDateTime, setSelectedDateTime] = useState<string>('');
+  const [isPrivate, setIsPrivate] = useState<boolean>(false);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -32,6 +35,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
       location: formData.get('location') as string,
       dateTime: new Date(selectedDateTime),
       description: formData.get('description') as string,
+      isPrivate: isPrivate,
       userId: '', // This will be set by the writeActivity function
       createdBy: '', // This will be set by the writeActivity function
     };
@@ -39,6 +43,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
     onSubmit(newActivity);
     onClose();
     setSelectedDateTime(''); // Reset the date time after submission
+    setIsPrivate(false); // Reset the private switch after submission
   };
 
   return (
@@ -98,6 +103,17 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
             placeholder="Add details about your activity..."
             multiline
             rows={3}
+          />
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isPrivate}
+                onChange={(e) => setIsPrivate(e.target.checked)}
+                color="primary"
+              />
+            }
+            label="Make this activity private (only visible to you)"
           />
 
           <Button

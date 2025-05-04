@@ -14,6 +14,7 @@ export const writeActivity = async (activityData: {
   location: string;
   dateTime: Date;
   description: string;
+  isPrivate?: boolean;
 }) => {
   const currentUser = getCurrentUserOrThrow();
   const userData = await getCurrentUserData();
@@ -25,6 +26,7 @@ export const writeActivity = async (activityData: {
     createdAt: new Date().toISOString(),
     userId: currentUser.uid,
     createdBy: creatorName,
+    isPrivate: activityData.isPrivate || false,
     joiners: {
       [currentUser.uid]: {
         email: currentUser.email,
@@ -115,9 +117,13 @@ export const deleteActivity = async (activityId: string) => {
 
 /**
  * Fetches activities that are either created by or joined by the user's connections 
- * that the user hasn't joined
+ * that the user hasn't joined and are not marked as private
  * @returns Array of activities from connected users
  * @throws Error if user is not authenticated
+ * 
+ * SECURITY NOTE: Filtering of private activities MUST be done client-side.
+ * Firestore security rules cannot filter documents by field content in collection queries.
+ * The rules can block document-level access, but for queries, we must filter in the client code.
  */
 export const fetchConnectionsActivities = async () => {
   const currentUser = getCurrentUserOrThrow();
@@ -159,6 +165,12 @@ export const fetchConnectionsActivities = async () => {
     // Process activities created by connections
     createdByConnectionsSnapshot.docs.forEach(doc => {
       const activityData = doc.data();
+      // CRITICAL SECURITY FILTER: Skip private activities
+      // This filtering MUST happen client-side since Firestore rules can't filter by fields in queries
+      if (activityData.isPrivate) {
+        return;
+      }
+      
       const creatorId = activityData.userId;
       const creatorInfo = userData.connections[creatorId];
       const createdByName = creatorInfo ? (creatorInfo.username || creatorInfo.email) : 'Unknown User';
@@ -177,6 +189,12 @@ export const fetchConnectionsActivities = async () => {
       snapshot.docs.forEach(doc => {
         if (!activitiesMap.has(doc.id)) {
           const activityData = doc.data();
+          // CRITICAL SECURITY FILTER: Skip private activities
+          // This filtering MUST happen client-side since Firestore rules can't filter by fields in queries
+          if (activityData.isPrivate) {
+            return;
+          }
+          
           // For activities only joined by connections (not created), don't allow current user to join
           activitiesMap.set(doc.id, {
             ...activityData,
@@ -224,6 +242,7 @@ export const updateActivity = async (activity: Activity) => {
       location: activity.location,
       description: activity.description,
       dateTime: activity.dateTime.toISOString(),
+      isPrivate: activity.isPrivate || false,
     });
 
     console.log('Activity updated successfully');
