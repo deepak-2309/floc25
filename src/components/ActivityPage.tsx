@@ -21,6 +21,9 @@ import { auth } from '../firebase/config';
  */
 const ActivityPage: React.FC = () => {
   const { activityId } = useParams<{ activityId: string }>();
+  // Add debug logging for the activity ID
+  console.log('ActivityPage rendered with activityId:', activityId);
+  
   const navigate = useNavigate();
   const [activity, setActivity] = useState<Activity | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -32,18 +35,30 @@ const ActivityPage: React.FC = () => {
   useEffect(() => {
     const loadActivity = async () => {
       if (!activityId) {
+        console.error('No activityId found in URL params');
         setError('No activity ID provided');
         setIsLoading(false);
         return;
       }
 
+      // Check if user is authenticated
+      if (!auth.currentUser) {
+        console.log('User not authenticated, cannot fetch activity');
+        setError('Please log in to view this activity');
+        setIsLoading(false);
+        return;
+      }
+
       try {
+        console.log('Attempting to fetch activity with ID:', activityId);
         setIsLoading(true);
         setError(null);
         
         const activityData = await fetchActivityById(activityId);
+        console.log('Activity data retrieved:', activityData);
         
         if (!activityData) {
+          console.error('Activity not found for ID:', activityId);
           setError('Activity not found');
           setIsLoading(false);
           return;
