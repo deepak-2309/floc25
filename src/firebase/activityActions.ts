@@ -1,5 +1,5 @@
 import { collection, addDoc, doc, getDoc, getDocs, query, where, updateDoc, deleteDoc, deleteField } from 'firebase/firestore';
-import { db } from './config';
+import { db, auth } from './config';
 import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils';
 import { Activity } from '../components/ActivityCard'; // Assuming ActivityCard is one level up
 
@@ -305,8 +305,6 @@ export const leaveActivity = async (activityId: string) => {
  * @returns boolean indicating if the current user has joined
  */
 export const hasUserJoined = (activity: Activity): boolean => {
-  // Import auth directly for this synchronous check
-  const { auth } = require('./config'); 
   const currentUser = auth.currentUser; 
   if (!currentUser || !activity.joiners) {
     return false;
