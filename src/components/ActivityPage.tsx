@@ -5,13 +5,17 @@ import {
   Button, 
   CircularProgress, 
   Alert,
-  Snackbar,
   Paper,
   Typography,
 } from '@mui/material';
 import { fetchActivityById, joinActivity, hasUserJoined, leaveActivity } from '../firebase/activityActions';
 import ActivityCard, { Activity } from './ActivityCard';
 import { auth } from '../firebase/config';
+
+// Import routes from App for consistency
+const ROUTES = {
+  MY_ACTIVITIES: '/my-plans',
+};
 
 /**
  * ActivityPage Component
@@ -28,7 +32,6 @@ const ActivityPage: React.FC = () => {
   const [activity, setActivity] = useState<Activity | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isJoined, setIsJoined] = useState<boolean>(false);
   const [joinLoading, setJoinLoading] = useState<boolean>(false);
 
@@ -92,19 +95,20 @@ const ActivityPage: React.FC = () => {
     
     try {
       setJoinLoading(true);
-      setSuccessMessage(null);
       
       if (isJoined) {
         await leaveActivity(activity.id);
         setIsJoined(false);
-        setSuccessMessage('You have left the activity');
       } else {
         await joinActivity(activity.id);
         setIsJoined(true);
-        setSuccessMessage('You have joined the activity');
+        
+        // Immediately redirect to My Activities page after joining
+        navigate(ROUTES.MY_ACTIVITIES);
+        return; // Exit early to prevent further processing
       }
       
-      // Refresh activity to get updated joiners list
+      // Refresh activity to get updated joiners list (only if not redirecting)
       const updatedActivity = await fetchActivityById(activity.id);
       if (updatedActivity) {
         setActivity(updatedActivity);
@@ -123,7 +127,7 @@ const ActivityPage: React.FC = () => {
 
   // Handle going back to activities list
   const handleBackToActivities = () => {
-    navigate('/my-plans');
+    navigate(ROUTES.MY_ACTIVITIES);
   };
 
   // Show loading spinner while data is being fetched
@@ -168,13 +172,6 @@ const ActivityPage: React.FC = () => {
   
   return (
     <Box sx={{ p: 2 }}>
-      <Snackbar
-        open={!!successMessage}
-        autoHideDuration={2000}
-        onClose={() => setSuccessMessage(null)}
-        message={successMessage}
-      />
-      
       {/* Use the shared ActivityCard component */}
       <ActivityCard
         activity={activity}
@@ -183,22 +180,7 @@ const ActivityPage: React.FC = () => {
       />
       
       {/* Additional actions for shared activities */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {!isCreator && (
-          <Button
-            variant={isJoined ? "outlined" : "contained"}
-            color="primary"
-            onClick={handleJoinToggle}
-            disabled={joinLoading}
-            fullWidth
-          >
-            {joinLoading ? 
-              <CircularProgress size={24} color="inherit" /> : 
-              (isJoined ? "Leave Activity" : "Join Activity")
-            }
-          </Button>
-        )}
-        
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
         <Button 
           variant="outlined"
           onClick={handleBackToActivities}
