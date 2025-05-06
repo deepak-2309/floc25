@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Drawer,
   Box,
@@ -7,9 +7,11 @@ import {
   Typography,
   IconButton,
   FormControlLabel,
-  Switch
+  Switch,
+  Tooltip
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import ShareIcon from '@mui/icons-material/Share';
 import { Activity } from './ActivityCard';
 
 interface CreateActivitySheetProps {
@@ -26,6 +28,14 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
   const [selectedDateTime, setSelectedDateTime] = useState<string>('');
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
 
+  // Reset form when sheet is closed
+  useEffect(() => {
+    if (!open) {
+      setSelectedDateTime('');
+      setIsPrivate(false);
+    }
+  }, [open]);
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -41,9 +51,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
     };
 
     onSubmit(newActivity);
-    onClose();
-    setSelectedDateTime(''); // Reset the date time after submission
-    setIsPrivate(false); // Reset the private switch after submission
+    onClose(); // Close the form automatically after submission
   };
 
   return (
@@ -105,16 +113,33 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
             rows={3}
           />
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
-                color="primary"
-              />
-            }
-            label="Mark as private"
-          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isPrivate}
+                  onChange={(e) => setIsPrivate(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Mark as private"
+            />
+            <Tooltip title="Create activity first to share - you'll get a share option after creation">
+              <span>
+                <Button 
+                  disabled={true}
+                  aria-label="share" 
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                  startIcon={<ShareIcon />}
+                  sx={{ minWidth: '100px' }}
+                >
+                  Share
+                </Button>
+              </span>
+            </Tooltip>
+          </Box>
 
           <Button
             type="submit"
