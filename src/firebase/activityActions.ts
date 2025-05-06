@@ -371,4 +371,36 @@ export const fetchPastActivities = async () => {
     console.error('Error fetching past activities:', error);
     throw error;
   }
+};
+
+/**
+ * Fetches an activity by its ID
+ * @param activityId The ID of the activity to fetch
+ * @returns The activity with the specified ID or null if not found
+ * @throws Error if user is not authenticated
+ * 
+ * Note: This function allows viewing private activities when accessed directly by ID
+ * This enables the sharing functionality to work for private activities
+ */
+export const fetchActivityById = async (activityId: string) => {
+  getCurrentUserOrThrow(); // Ensure user is authenticated
+
+  try {
+    const activityRef = doc(db, 'activities', activityId);
+    const activityDoc = await getDoc(activityRef);
+
+    if (!activityDoc.exists()) {
+      return null; // Activity not found
+    }
+
+    const data = activityDoc.data();
+    return {
+      id: activityId,
+      ...data,
+      dateTime: new Date(data.dateTime)
+    } as Activity;
+  } catch (error) {
+    console.error('Error fetching activity by ID:', error);
+    throw error;
+  }
 }; 
