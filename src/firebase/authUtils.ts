@@ -33,6 +33,20 @@ export const getCurrentUserData = async (): Promise<DocumentData> => {
     return userDoc.data();
 };
 
+/**
+ * Extracts a default username from an email address by taking the part before the @ symbol
+ * @param email User's email address
+ * @returns Default username or null if email is invalid
+ */
+export const getDefaultUsernameFromEmail = (email: string | null): string | null => {
+  if (!email) return null;
+  
+  const atIndex = email.indexOf('@');
+  if (atIndex === -1) return null;
+  
+  return email.substring(0, atIndex);
+};
+
 // Function to update user data in Firestore when a user is created or logs in
 export const updateUserData = async (user: {
   uid: string;
@@ -43,12 +57,15 @@ export const updateUserData = async (user: {
     const userDoc = await getDoc(userRef);
 
     if (!userDoc.exists()) {
-      // For new users, set all initial fields including createdAt
+      // Generate default username from email for new users
+      const defaultUsername = getDefaultUsernameFromEmail(user.email);
+      
+      // For new users, set all initial fields including createdAt and default username
       await setDoc(userRef, {
         email: user.email,
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
-        username: null // Initialize username as null for new users
+        username: defaultUsername // Set default username instead of null
       });
     } else {
       // For existing users, only update lastLogin while preserving other fields
