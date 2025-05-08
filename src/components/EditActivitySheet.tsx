@@ -7,9 +7,12 @@ import {
   Typography,
   IconButton,
   FormControlLabel,
-  Switch
+  Switch,
+  Tooltip,
+  Snackbar
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import ShareIcon from '@mui/icons-material/Share';
 import { Activity } from './ActivityCard';
 
 interface EditActivitySheetProps {
@@ -27,8 +30,12 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
   activity,
   onDelete
 }) => {
+  // Add debug logging
+  console.log('EditActivitySheet rendered with activity:', activity);
+  
   const [selectedDateTime, setSelectedDateTime] = useState<string>('');
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
+  const [shareSnackbar, setShareSnackbar] = useState<boolean>(false);
 
   // Initialize form with activity data when opened
   useEffect(() => {
@@ -68,6 +75,16 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
     if (onDelete) {
       onDelete();
       onClose();
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const url = `${window.location.origin}/activity/${activity.id}`;
+      await navigator.clipboard.writeText(url);
+      setShareSnackbar(true);
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
     }
   };
 
@@ -133,16 +150,31 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
             rows={3}
           />
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isPrivate}
+                  onChange={(e) => setIsPrivate(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Mark as private"
+            />
+            <Tooltip title="Share activity link">
+              <Button 
+                onClick={handleShare}
+                aria-label="share" 
                 color="primary"
-              />
-            }
-            label="Mark as private"
-          />
+                variant="outlined"
+                size="small"
+                startIcon={<ShareIcon />}
+                sx={{ minWidth: '100px', width: 'auto', display: 'flex' }}
+              >
+                Share
+              </Button>
+            </Tooltip>
+          </Box>
 
           <Button
             type="submit"
@@ -164,6 +196,13 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
           </Button>
         </Box>
       </Box>
+      
+      <Snackbar
+        open={shareSnackbar}
+        autoHideDuration={2000}
+        onClose={() => setShareSnackbar(false)}
+        message="Activity link copied to clipboard!"
+      />
     </Drawer>
   );
 };

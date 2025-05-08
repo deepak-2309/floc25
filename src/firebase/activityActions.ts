@@ -1,5 +1,5 @@
 import { collection, addDoc, doc, getDoc, getDocs, query, where, updateDoc, deleteDoc, deleteField } from 'firebase/firestore';
-import { db } from './config';
+import { db, auth } from './config';
 import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils';
 import { Activity } from '../components/ActivityCard'; // Assuming ActivityCard is one level up
 
@@ -305,8 +305,6 @@ export const leaveActivity = async (activityId: string) => {
  * @returns boolean indicating if the current user has joined
  */
 export const hasUserJoined = (activity: Activity): boolean => {
-  // Import auth directly for this synchronous check
-  const { auth } = require('./config'); 
   const currentUser = auth.currentUser; 
   if (!currentUser || !activity.joiners) {
     return false;
@@ -369,6 +367,38 @@ export const fetchPastActivities = async () => {
       .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime()); // Sort by most recent first
   } catch (error) {
     console.error('Error fetching past activities:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches an activity by its ID
+ * @param activityId The ID of the activity to fetch
+ * @returns The activity with the specified ID or null if not found
+ * @throws Error if user is not authenticated
+ * 
+ * Note: This function allows viewing private activities when accessed directly by ID
+ * This enables the sharing functionality to work for private activities
+ */
+export const fetchActivityById = async (activityId: string) => {
+  getCurrentUserOrThrow(); // Ensure user is authenticated
+
+  try {
+    const activityRef = doc(db, 'activities', activityId);
+    const activityDoc = await getDoc(activityRef);
+
+    if (!activityDoc.exists()) {
+      return null; // Activity not found
+    }
+
+    const data = activityDoc.data();
+    return {
+      id: activityId,
+      ...data,
+      dateTime: new Date(data.dateTime)
+    } as Activity;
+  } catch (error) {
+    console.error('Error fetching activity by ID:', error);
     throw error;
   }
 }; 

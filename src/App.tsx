@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Box, AppBar, Toolbar, Typography, Button, CircularProgress } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, Button, CircularProgress, Alert } from '@mui/material';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import PersonIcon from '@mui/icons-material/Person';
@@ -16,13 +16,15 @@ import MyActivities from './components/MyActivities';
 import FriendsActivities from './components/FriendsActivities';
 import Profile from './components/Profile';
 import { updateUserData } from './firebase/authUtils';
+import ActivityPage from './components/ActivityPage';
 
 // Define all route paths in one place for easy maintenance
 const ROUTES = {
   MY_ACTIVITIES: '/my-plans',
   FRIENDS: '/friends-activities',
   PROFILE: '/profile',
-  LOGIN: '/login'
+  LOGIN: '/login',
+  ACTIVITY: '/activity'
 };
 
 function App() {
@@ -46,13 +48,17 @@ function App() {
           email: currentUser.email,
         });
 
+        // Only redirect if on login page, but not if on an activity page
         if (window.location.pathname === ROUTES.LOGIN) {
           // If user is logged in and on login page, redirect to main page
           navigate(ROUTES.MY_ACTIVITIES);
         }
       } else {
-        // If no user is logged in, redirect to login page
-        navigate(ROUTES.LOGIN);
+        // If no user is logged in and not on an activity page, redirect to login
+        // Allow staying on activity pages for login prompt
+        if (!window.location.pathname.startsWith(ROUTES.ACTIVITY)) {
+          navigate(ROUTES.LOGIN);
+        }
       }
     });
 
@@ -84,6 +90,15 @@ function App() {
     return (
       <Routes>
         <Route path={ROUTES.LOGIN} element={<Login />} />
+        {/* Allow access to activity routes even when not authenticated */}
+        <Route path={`${ROUTES.ACTIVITY}/:activityId`} element={
+          <Box sx={{ pt: 2 }}>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Please log in to view this activity.
+            </Alert>
+            <Login />
+          </Box>
+        } />
         <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
       </Routes>
     );
@@ -127,6 +142,9 @@ function App() {
           <Route path={ROUTES.MY_ACTIVITIES} element={<MyActivities />} />
           <Route path={ROUTES.FRIENDS} element={<FriendsActivities />} />
           <Route path={ROUTES.PROFILE} element={<Profile />} />
+          
+          {/* Route for viewing shared activities */}
+          <Route path={`${ROUTES.ACTIVITY}/:activityId`} element={<ActivityPage />} />
           
           {/* Catch all unknown routes and redirect to My Activities */}
           <Route path="*" element={<Navigate to={ROUTES.MY_ACTIVITIES} replace />} />
