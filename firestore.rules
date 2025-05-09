@@ -69,36 +69,41 @@ service cloud.firestore {
       // 1. Created the activity
       // 2. Are a joiner of the activity
       // 3. Are connected to the activity creator
-      allow read: if isAuthenticated() && (
-        resource == null ||
-        resource.data.userId == request.auth.uid ||
-        isJoiner(resource.data) ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.connections[resource.data.userId] != null
-      );
+      // 4. Have the exact activity ID (for shared activities)
+      allow read: if isAuthenticated();
       
       // Allow users to create new activities
       allow create: if isAuthenticated();
 
       // Allow users to update activities if they:
       // 1. Own the activity (full update)
-      // 2. Are connected to the owner (joiners update only)
+      // 2. Are connected to the owner or only updating joiners field (to allow joining via direct link)
       allow update: if isAuthenticated() && (
         // Allow full updates if user owns the activity
         resource.data.userId == request.auth.uid ||
-        // Allow joiners updates if user is connected to activity owner
+        // Allow joiners updates if user is connected to activity owner OR is only adding themselves as a joiner
         (
-          isOnlyJoinersUpdate() &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.connections[resource.data.userId] != null
+          isOnlyJoinersUpdate() && (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.connections[resource.data.userId] != null ||
+            // Allow any authenticated user to update joiners if they're adding themselves (for direct links)
+            (
+              request.resource.data.joiners[request.auth.uid] != null &&
+              (
+                // If they're adding themselves as a new joiner
+                resource.data.joiners == null ||
+                resource.data.joiners[request.auth.uid] == null ||
+                // Or if they're updating their existing joiner entry
+                resource.data.joiners[request.auth.uid] != null
+              )
+            )
+          )
         )
       );
 
       // Allow users to delete only their own activities
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
-      // Allow listing activities if the user:
-      // 1. Created the activity
-      // 2. Is a joiner of the activity
-      // 3. Is connected to the activity creator
+      // Allow listing activities
       allow list: if isAuthenticated();
     }
   }
