@@ -270,8 +270,6 @@ const ConnectionsList: React.FC = () => {
                       )}
                     </Box>
                   }
-                  secondary={!connection.username && connection.email}
-                  secondaryTypographyProps={{ variant: "body2" }}
                 />
                 {/* Delete connection button */}
                 <ListItemSecondaryAction>
