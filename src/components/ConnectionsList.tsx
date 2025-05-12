@@ -132,17 +132,42 @@ const ConnectionsList: React.FC = () => {
 
   /**
    * Formats the connection date in a readable format
-   * @param timestamp Firebase timestamp
+   * @param timestamp Firebase timestamp or ISO string
    * @returns Formatted date string
    */
   const formatConnectionDate = (timestamp: any) => {
     if (!timestamp) return '';
-    const date = timestamp.toDate();
+    
+    let date;
+    if (typeof timestamp === 'string') {
+      date = new Date(timestamp);
+    } else if (timestamp.toDate) {
+      date = timestamp.toDate();
+    } else {
+      return '';
+    }
+
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
     });
+  };
+
+  /**
+   * Gets a Date object from either a Firebase timestamp or ISO string
+   * @param timestamp Firebase timestamp or ISO string
+   * @returns Date object or null
+   */
+  const getDateFromTimestamp = (timestamp: any): Date | null => {
+    if (!timestamp) return null;
+    
+    if (typeof timestamp === 'string') {
+      return new Date(timestamp);
+    } else if (timestamp.toDate) {
+      return timestamp.toDate();
+    }
+    return null;
   };
 
   /**
@@ -225,9 +250,9 @@ const ConnectionsList: React.FC = () => {
           No connections yet
         </Typography>
       ) : (
-        // List of connections with fixed height and scrolling (shows 3 items at a time)
+        // List of connections with fixed height and scrolling
         <Box sx={{ 
-          maxHeight: '144px', // Height to show exactly 3 items (48px per item)
+          maxHeight: '144px',
           overflowY: 'auto',
           '&::-webkit-scrollbar': {
             width: '8px',
@@ -246,44 +271,49 @@ const ConnectionsList: React.FC = () => {
         }}>
           <List dense>
             {connections
-              .sort((a, b) => b.connectedAt?.toDate() - a.connectedAt?.toDate())
+              .sort((a, b) => {
+                const dateA = getDateFromTimestamp(a.connectedAt);
+                const dateB = getDateFromTimestamp(b.connectedAt);
+                if (!dateA || !dateB) return 0;
+                return dateB.getTime() - dateA.getTime();
+              })
               .map((connection) => (
-              <ListItem 
-                key={connection.id}
-                sx={{ 
-                  py: 0.5,
-                  minHeight: '48px'
-                }}
-              >
-                {/* Connection details with inline date */}
-                <ListItemText
-                  primary={
-                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="subtitle1" component="span">
-                        {connection.username || connection.email}
-                      </Typography>
-                      {/* Connection date in compact format */}
-                      {connection.connectedAt && (
-                        <Typography component="span" variant="body2" color="text.secondary">
-                          (since {formatConnectionDate(connection.connectedAt)})
+                <ListItem 
+                  key={connection.id}
+                  sx={{ 
+                    py: 0.5,
+                    minHeight: '48px'
+                  }}
+                >
+                  {/* Connection details with inline date */}
+                  <ListItemText
+                    primary={
+                      <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle1" component="span">
+                          {connection.username || connection.email}
                         </Typography>
-                      )}
-                    </Box>
-                  }
-                />
-                {/* Delete connection button */}
-                <ListItemSecondaryAction>
-                  <IconButton
-                    edge="end"
-                    aria-label="remove connection"
-                    onClick={() => openDeleteDialog(connection)}
-                    size="small"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </ListItemSecondaryAction>
-              </ListItem>
-            ))}
+                        {/* Connection date in compact format */}
+                        {connection.connectedAt && (
+                          <Typography component="span" variant="body2" color="text.secondary">
+                            (since {formatConnectionDate(connection.connectedAt)})
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                  />
+                  {/* Delete connection button */}
+                  <ListItemSecondaryAction>
+                    <IconButton
+                      edge="end"
+                      aria-label="remove connection"
+                      onClick={() => openDeleteDialog(connection)}
+                      size="small"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              ))}
           </List>
         </Box>
       )}

@@ -1,4 +1,4 @@
-import { collection, addDoc, doc, getDoc, getDocs, query, where, updateDoc, deleteDoc, deleteField } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, getDocs, query, where, updateDoc, deleteDoc, deleteField, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from './config';
 import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils';
 import { Activity } from '../components/ActivityCard'; // Assuming ActivityCard is one level up
@@ -254,15 +254,59 @@ export const updateActivity = async (activity: Activity) => {
 
 /**
  * Joins an activity by adding the current user to its joiners list
+ * If the user is not connected to the activity creator, they will be connected
  * @param activityId The ID of the activity to join
+ * @param shouldConnect Whether to connect with the creator (defaults to false)
  * @throws Error if user is not authenticated
  */
-export const joinActivity = async (activityId: string) => {
+export const joinActivity = async (activityId: string, shouldConnect: boolean = false) => {
   const currentUser = getCurrentUserOrThrow();
   const userData = await getCurrentUserData();
 
   try {
     const activityRef = doc(db, 'activities', activityId);
+    const activityDoc = await getDoc(activityRef);
+    
+    if (!activityDoc.exists()) {
+      throw new Error('Activity not found');
+    }
+
+    const activityData = activityDoc.data();
+    const creatorId = activityData.userId;
+
+    // Check if user is already connected to creator
+    const isConnected = userData?.connections && userData.connections[creatorId];
+
+    // If not connected and shouldConnect is true, establish connection
+    if (!isConnected && shouldConnect && creatorId !== currentUser.uid) {
+      const creatorDoc = await getDoc(doc(db, 'users', creatorId));
+      if (!creatorDoc.exists()) {
+        throw new Error('Activity creator not found');
+      }
+      const creatorData = creatorDoc.data();
+
+      // Add connection to current user's document
+      const currentUserRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(currentUserRef, {
+        [`connections.${creatorId}`]: {
+          email: creatorData.email,
+          username: creatorData.username || null,
+          connectedAt: serverTimestamp()
+        }
+      });
+
+      // Add connection to creator's document
+      const creatorRef = doc(db, 'users', creatorId);
+      await updateDoc(creatorRef, {
+        [`connections.${currentUser.uid}`]: {
+          email: currentUser.email,
+          username: userData?.username || null,
+          connectedAt: serverTimestamp()
+        }
+      });
+    }
+
+    // Join the activity
     await updateDoc(activityRef, {
       [`joiners.${currentUser.uid}`]: {
         email: currentUser.email,
@@ -288,8 +332,19 @@ export const leaveActivity = async (activityId: string) => {
 
   try {
     const activityRef = doc(db, 'activities', activityId);
+    const activityDoc = await getDoc(activityRef);
+    
+    if (!activityDoc.exists()) {
+      throw new Error('Activity not found');
+    }
+
+    // Get current joiners and remove the current user
+    const currentJoiners = activityDoc.data().joiners || {};
+    const { [currentUser.uid]: removed, ...remainingJoiners } = currentJoiners;
+
+    // Update with the new joiners object
     await updateDoc(activityRef, {
-      [`joiners.${currentUser.uid}`]: deleteField()
+      joiners: remainingJoiners
     });
 
     console.log('Successfully left activity');

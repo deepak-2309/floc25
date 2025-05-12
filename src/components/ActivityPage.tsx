@@ -7,10 +7,15 @@ import {
   Alert,
   Paper,
   Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { fetchActivityById, joinActivity, hasUserJoined, leaveActivity } from '../firebase/activityActions';
 import ActivityCard, { Activity } from './ActivityCard';
 import { auth } from '../firebase/config';
+import { getCurrentUserData } from '../firebase/authUtils';
 
 // Import routes from App for consistency
 const ROUTES = {
@@ -34,6 +39,8 @@ const ActivityPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isJoined, setIsJoined] = useState<boolean>(false);
   const [joinLoading, setJoinLoading] = useState<boolean>(false);
+  const [showConnectionDialog, setShowConnectionDialog] = useState<boolean>(false);
+  const [isConnectedToCreator, setIsConnectedToCreator] = useState<boolean>(false);
 
   useEffect(() => {
     const loadActivity = async () => {
@@ -74,6 +81,11 @@ const ActivityPage: React.FC = () => {
           const joined = await hasUserJoined(activityData);
           setIsJoined(joined);
         }
+
+        // Check if user is connected to creator
+        const userData = await getCurrentUserData();
+        const isConnected = userData?.connections && userData.connections[activityData.userId];
+        setIsConnectedToCreator(isConnected);
       } catch (error) {
         console.error('Error loading activity:', error);
         if (error instanceof Error) {
@@ -100,12 +112,15 @@ const ActivityPage: React.FC = () => {
         await leaveActivity(activity.id);
         setIsJoined(false);
       } else {
+        // If not connected to creator, show confirmation dialog
+        if (!isConnectedToCreator && activity.userId !== auth.currentUser?.uid) {
+          setShowConnectionDialog(true);
+          return;
+        }
         await joinActivity(activity.id);
         setIsJoined(true);
-        
-        // Immediately redirect to My Activities page after joining
         navigate(ROUTES.MY_ACTIVITIES);
-        return; // Exit early to prevent further processing
+        return;
       }
       
       // Refresh activity to get updated joiners list (only if not redirecting)
@@ -120,6 +135,28 @@ const ActivityPage: React.FC = () => {
       } else {
         setError('Failed to update join status');
       }
+    } finally {
+      setJoinLoading(false);
+    }
+  };
+
+  const handleConfirmJoin = async () => {
+    if (!activity) return;
+    
+    try {
+      setJoinLoading(true);
+      await joinActivity(activity.id, true); // Pass true to establish connection
+      setIsJoined(true);
+      setShowConnectionDialog(false);
+      navigate(ROUTES.MY_ACTIVITIES);
+    } catch (error) {
+      console.error('Error joining activity:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to join activity');
+      }
+      setShowConnectionDialog(false);
     } finally {
       setJoinLoading(false);
     }
@@ -199,6 +236,30 @@ const ActivityPage: React.FC = () => {
             " Feel free to join if you're interested!"}
         </Typography>
       </Paper>
+
+      {/* Connection Confirmation Dialog */}
+      <Dialog
+        open={showConnectionDialog}
+        onClose={() => setShowConnectionDialog(false)}
+      >
+        <DialogTitle>Connect with Activity Creator</DialogTitle>
+        <DialogContent>
+          <Typography>
+            By joining this activity, you will be connected with the creator. This means:
+          </Typography>
+          <Box component="ul" sx={{ mt: 1 }}>
+            <li>You'll be able to see their future activities</li>
+            <li>They'll be able to see your activities</li>
+            <li>You can view your connections on the Profile tab</li>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowConnectionDialog(false)}>Cancel</Button>
+          <Button onClick={handleConfirmJoin} variant="contained" disabled={joinLoading}>
+            {joinLoading ? 'Joining...' : 'Join & Connect'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

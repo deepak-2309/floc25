@@ -12,12 +12,6 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Helper function to check if a user is connected to another user
-    function isConnectedUser(userId) {
-      return isAuthenticated() && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)/connections/$(userId));
-    }
-
     // Helper function to check if only connections field is being modified
     function isOnlyConnectionsUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections']);
@@ -65,11 +59,7 @@ service cloud.firestore {
 
     // Rules for activities collection
     match /activities/{activityId} {
-      // Allow users to read activities if they:
-      // 1. Created the activity
-      // 2. Are a joiner of the activity
-      // 3. Are connected to the activity creator
-      // 4. Have the exact activity ID (for shared activities)
+      // Allow users to read activities if they are authenticated
       allow read: if isAuthenticated();
       
       // Allow users to create new activities
@@ -77,24 +67,32 @@ service cloud.firestore {
 
       // Allow users to update activities if they:
       // 1. Own the activity (full update)
-      // 2. Are connected to the owner or only updating joiners field (to allow joining via direct link)
+      // 2. Are joining or leaving the activity
       allow update: if isAuthenticated() && (
         // Allow full updates if user owns the activity
         resource.data.userId == request.auth.uid ||
-        // Allow joiners updates if user is connected to activity owner OR is only adding themselves as a joiner
+        // Allow joiners updates if:
         (
-          isOnlyJoinersUpdate() && (
-            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.connections[resource.data.userId] != null ||
-            // Allow any authenticated user to update joiners if they're adding themselves (for direct links)
+          // Only updating joiners field
+          isOnlyJoinersUpdate() &&
+          (
+            // User is joining (adding themselves to joiners)
             (
+              // User is not currently a joiner
+              !(request.auth.uid in resource.data.joiners) &&
+              // User appears in new joiners
               request.resource.data.joiners[request.auth.uid] != null &&
-              (
-                // If they're adding themselves as a new joiner
-                resource.data.joiners == null ||
-                resource.data.joiners[request.auth.uid] == null ||
-                // Or if they're updating their existing joiner entry
-                resource.data.joiners[request.auth.uid] != null
-              )
+              // All other joiners remain unchanged
+              resource.data.joiners.size() + 1 == request.resource.data.joiners.size()
+            ) ||
+            // OR user is leaving (removing themselves from joiners)
+            (
+              // User is currently a joiner
+              resource.data.joiners[request.auth.uid] != null &&
+              // User is not in new joiners
+              !(request.auth.uid in request.resource.data.joiners) &&
+              // All other joiners remain unchanged
+              resource.data.joiners.size() == request.resource.data.joiners.size() + 1
             )
           )
         )
