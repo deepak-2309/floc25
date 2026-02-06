@@ -127,7 +127,7 @@ function App() {
         boxShadow: { sm: '0 0 20px rgba(0,0,0,0.1)' } // Shadow on desktop
       }}>
         {/* Top App Bar */}
-        <AppBar position="static" elevation={0}>
+        <AppBar position="sticky" elevation={0} sx={{ top: 0, zIndex: 1100 }}>
           <Toolbar sx={{ px: { xs: 2, sm: 3 } }}>
             <Typography
               variant="h5"
@@ -141,15 +141,19 @@ function App() {
             >
               floc
             </Typography>
+            {/* Spacer - always present to push sign out to the right */}
+            <Box sx={{ flexGrow: 1 }} />
             <Typography
               variant="body2"
               component="div"
               sx={{
-                flexGrow: 1,
                 textAlign: 'center',
                 color: 'rgba(255, 255, 255, 0.85)',
                 fontFamily: 'Pacifico',
                 display: { xs: 'none', sm: 'block' },
+                position: 'absolute',
+                left: '50%',
+                transform: 'translateX(-50%)',
               }}
             >
               join your friends, irl!
@@ -195,6 +199,7 @@ function App() {
           value={location.pathname}
           onChange={(_, path) => navigate(path)}
           showLabels
+          sx={{ position: 'sticky', bottom: 0, zIndex: 1100 }}
         >
           <BottomNavigationAction
             label="My Plans"

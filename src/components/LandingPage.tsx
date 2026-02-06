@@ -153,136 +153,149 @@ const LandingPage: React.FC = () => {
                     </Typography>
 
                     {/* Example Activity Cards */}
-                    <Grid container spacing={3} sx={{ mb: 8, maxWidth: 960, mx: 'auto' }}>
+                    <Box sx={{
+                        display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: 3,
+                        mb: 8,
+                        maxWidth: 960,
+                        mx: 'auto',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        px: 2,
+                    }}>
                         {/* Squash Card - Tuesday */}
-                        <Grid item xs={12} sm={4}>
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    p: 3,
-                                    borderRadius: 3,
-                                    background: 'rgba(255, 255, 255, 0.95)',
-                                    backdropFilter: 'blur(10px)',
-                                    textAlign: 'left',
-                                    transition: 'transform 0.2s ease',
-                                    '&:hover': {
-                                        transform: 'translateY(-4px)',
-                                    },
-                                }}
-                            >
-                                <Typography variant="h6" sx={{ fontWeight: 600, color: '#18181B', mb: 0.5, display: 'flex', alignItems: 'center' }}>
-                                    <SquashBallIcon /> Squash
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#52525B', mb: 1 }}>
-                                    Game Theory Indiranagar
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#0D9488', fontWeight: 500 }}>
-                                    Tuesday, 7:00 AM
-                                </Typography>
-                                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Box
-                                        sx={{
-                                            px: 1.5,
-                                            py: 0.5,
-                                            borderRadius: 2,
-                                            backgroundColor: '#FED7AA',
-                                            color: '#9A3412',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        ₹250
-                                    </Box>
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                p: 3,
+                                borderRadius: 3,
+                                background: 'rgba(255, 255, 255, 0.95)',
+                                backdropFilter: 'blur(10px)',
+                                textAlign: 'left',
+                                transition: 'transform 0.2s ease',
+                                width: { xs: '100%', sm: 'auto' },
+                                maxWidth: { xs: '100%', sm: 280 },
+                                flex: { sm: 1 },
+                                '&:hover': {
+                                    transform: 'translateY(-4px)',
+                                },
+                            }}
+                        >
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: '#18181B', mb: 0.5, display: 'flex', alignItems: 'center' }}>
+                                <SquashBallIcon /> Squash
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#52525B', mb: 1 }}>
+                                Game Theory Indiranagar
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#0D9488', fontWeight: 500 }}>
+                                Tuesday, 7:00 AM
+                            </Typography>
+                            <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box
+                                    sx={{
+                                        px: 1.5,
+                                        py: 0.5,
+                                        borderRadius: 2,
+                                        backgroundColor: '#FED7AA',
+                                        color: '#9A3412',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    ₹250
                                 </Box>
-                            </Paper>
-                        </Grid>
+                            </Box>
+                        </Paper>
 
                         {/* Ultimate Frisbee Card - Saturday */}
-                        <Grid item xs={12} sm={4}>
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    p: 3,
-                                    borderRadius: 3,
-                                    background: 'rgba(255, 255, 255, 0.95)',
-                                    backdropFilter: 'blur(10px)',
-                                    textAlign: 'left',
-                                    transition: 'transform 0.2s ease',
-                                    '&:hover': {
-                                        transform: 'translateY(-4px)',
-                                    },
-                                }}
-                            >
-                                <Typography variant="h6" sx={{ fontWeight: 600, color: '#18181B', mb: 0.5 }}>
-                                    🥏 Ultimate Frisbee
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#52525B', mb: 1 }}>
-                                    SUFC
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#0D9488', fontWeight: 500 }}>
-                                    Saturday, 7:00 PM
-                                </Typography>
-                                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Box
-                                        sx={{
-                                            px: 1.5,
-                                            py: 0.5,
-                                            borderRadius: 2,
-                                            backgroundColor: '#FED7AA',
-                                            color: '#9A3412',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        ₹400
-                                    </Box>
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                p: 3,
+                                borderRadius: 3,
+                                background: 'rgba(255, 255, 255, 0.95)',
+                                backdropFilter: 'blur(10px)',
+                                textAlign: 'left',
+                                transition: 'transform 0.2s ease',
+                                width: { xs: '100%', sm: 'auto' },
+                                maxWidth: { xs: '100%', sm: 280 },
+                                flex: { sm: 1 },
+                                '&:hover': {
+                                    transform: 'translateY(-4px)',
+                                },
+                            }}
+                        >
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: '#18181B', mb: 0.5 }}>
+                                🥏 Ultimate Frisbee
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#52525B', mb: 1 }}>
+                                SUFC
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#0D9488', fontWeight: 500 }}>
+                                Saturday, 7:00 PM
+                            </Typography>
+                            <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box
+                                    sx={{
+                                        px: 1.5,
+                                        py: 0.5,
+                                        borderRadius: 2,
+                                        backgroundColor: '#FED7AA',
+                                        color: '#9A3412',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    ₹400
                                 </Box>
-                            </Paper>
-                        </Grid>
+                            </Box>
+                        </Paper>
 
                         {/* Run Card - Sunday */}
-                        <Grid item xs={12} sm={4}>
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    p: 3,
-                                    borderRadius: 3,
-                                    background: 'rgba(255, 255, 255, 0.95)',
-                                    backdropFilter: 'blur(10px)',
-                                    textAlign: 'left',
-                                    transition: 'transform 0.2s ease',
-                                    '&:hover': {
-                                        transform: 'translateY(-4px)',
-                                    },
-                                }}
-                            >
-                                <Typography variant="h6" sx={{ fontWeight: 600, color: '#18181B', mb: 0.5 }}>
-                                    🏃‍♂️ Morning Run
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#52525B', mb: 1 }}>
-                                    Cubbon Park
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#0D9488', fontWeight: 500 }}>
-                                    Sunday, 6:00 AM
-                                </Typography>
-                                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Box
-                                        sx={{
-                                            px: 1.5,
-                                            py: 0.5,
-                                            borderRadius: 2,
-                                            backgroundColor: '#99F6E4',
-                                            color: '#0F766E',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        Free
-                                    </Box>
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                p: 3,
+                                borderRadius: 3,
+                                background: 'rgba(255, 255, 255, 0.95)',
+                                backdropFilter: 'blur(10px)',
+                                textAlign: 'left',
+                                transition: 'transform 0.2s ease',
+                                width: { xs: '100%', sm: 'auto' },
+                                maxWidth: { xs: '100%', sm: 280 },
+                                flex: { sm: 1 },
+                                '&:hover': {
+                                    transform: 'translateY(-4px)',
+                                },
+                            }}
+                        >
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: '#18181B', mb: 0.5 }}>
+                                🏃‍♂️ Morning Run
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#52525B', mb: 1 }}>
+                                Cubbon Park
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#0D9488', fontWeight: 500 }}>
+                                Sunday, 6:00 AM
+                            </Typography>
+                            <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box
+                                    sx={{
+                                        px: 1.5,
+                                        py: 0.5,
+                                        borderRadius: 2,
+                                        backgroundColor: '#99F6E4',
+                                        color: '#0F766E',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    Free
                                 </Box>
-                            </Paper>
-                        </Grid>
-                    </Grid>
+                            </Box>
+                        </Paper>
+                    </Box>
 
                     {/* CTA Button */}
                     <Button
@@ -368,6 +381,10 @@ const LandingPage: React.FC = () => {
                                         borderRadius: 3,
                                         border: '1px solid #E4E4E7',
                                         transition: 'all 0.3s ease',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        textAlign: 'center',
                                         '&:hover': {
                                             borderColor: '#0D9488',
                                             boxShadow: '0 4px 20px rgba(13, 148, 136, 0.1)',

@@ -4,10 +4,10 @@ import AddIcon from '@mui/icons-material/Add';
 import ActivityCard, { Activity } from './ActivityCard';
 import CreateActivitySheet from './CreateActivitySheet';
 import EditActivitySheet from './EditActivitySheet';
-import { 
-  writeActivity, 
-  fetchUserActivities, 
-  deleteActivity, 
+import {
+  writeActivity,
+  fetchUserActivities,
+  deleteActivity,
   updateActivity,
   joinActivity,
   leaveActivity,
@@ -42,13 +42,13 @@ const MyActivities: React.FC = () => {
       setIsLoading(true);
       setError(null);
       const fetchedActivities = await fetchUserActivities();
-      
+
       // Filter out past activities and sort by date (earliest first)
       const now = new Date();
       const filteredAndSortedActivities = fetchedActivities
         .filter(activity => activity.dateTime > now)
         .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
-      
+
       setActivities(filteredAndSortedActivities);
     } catch (error) {
       console.error('Error fetching activities:', error);
@@ -95,12 +95,12 @@ const MyActivities: React.FC = () => {
     try {
       setError(null);
       await updateActivity(updatedActivity);
-      
+
       // Update local state
-      setActivities(activities.map(activity => 
+      setActivities(activities.map(activity =>
         activity.id === updatedActivity.id ? updatedActivity : activity
       ));
-      
+
       setSuccessMessage('Activity updated successfully');
       setIsEditSheetOpen(false);
       setEditingActivity(null);
@@ -131,7 +131,7 @@ const MyActivities: React.FC = () => {
       setError(null);
       const newActivityId = await writeActivity(activity);
       console.log('Activity created with ID:', newActivityId);
-      
+
       // Reload activities to include the new one
       await loadActivities();
       setSuccessMessage('Activity created successfully');
@@ -153,7 +153,7 @@ const MyActivities: React.FC = () => {
       setError(null);
       setSuccessMessage(null); // Clear any existing message
       const isJoined = hasUserJoined(activity);
-      
+
       if (isJoined) {
         await leaveActivity(activity.id);
         setSuccessMessage('Left activity successfully');
@@ -161,7 +161,7 @@ const MyActivities: React.FC = () => {
         await joinActivity(activity.id);
         setSuccessMessage('Joined activity successfully');
       }
-      
+
       // Reload activities to update joiners list
       await loadActivities();
     } catch (error) {
@@ -175,7 +175,7 @@ const MyActivities: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 2, position: 'relative', minHeight: '100vh' }}>
+    <Box sx={{ p: 2, position: 'relative' }}>
       {/* Error message display */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -207,7 +207,7 @@ const MyActivities: React.FC = () => {
           />
         ))
       )}
-      
+
       {/* Floating Action Button for creating new activities */}
       <Fab
         color="primary"
