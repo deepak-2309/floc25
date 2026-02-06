@@ -1,4 +1,4 @@
-import { collection, addDoc, doc, getDoc, getDocs, query, where, updateDoc, deleteDoc, deleteField, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, getDocs, query, where, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from './config';
 import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils';
 import { Activity } from '../components/ActivityCard'; // Assuming ActivityCard is one level up

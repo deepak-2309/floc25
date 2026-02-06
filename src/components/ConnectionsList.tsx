@@ -60,6 +60,7 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, o
   // Load connections when component mounts
   useEffect(() => {
     loadConnections();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Add a refresh interval to keep connections up to date
@@ -69,6 +70,7 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, o
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**

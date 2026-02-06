@@ -6,7 +6,6 @@ import {
     Typography,
     Paper,
     IconButton,
-    Divider,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 

@@ -1,11 +1,10 @@
 import { doc, updateDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from './config';
 import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils';
-import { 
-  loadRazorpayScript, 
-  createPaymentOptions, 
-  RazorpayResponse,
-  RAZORPAY_CONFIG 
+import {
+  loadRazorpayScript,
+  createPaymentOptions,
+  RazorpayResponse
 } from './razorpayConfig';
 
 declare global {
@@ -39,13 +38,13 @@ export const createPaymentOrder = async (orderData: CreateOrderRequest): Promise
   // In production, this should call your backend API to create a Razorpay order
   // For demo purposes, we'll generate a mock order ID
   // Replace this with actual Razorpay order creation API call
-  
+
   const mockOrderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   // Store order details in Firestore for verification later
   const currentUser = getCurrentUserOrThrow();
   const orderRef = doc(db, 'payment_orders', mockOrderId);
-  
+
   await setDoc(orderRef, {
     orderId: mockOrderId,
     amount: orderData.amount,
@@ -55,7 +54,7 @@ export const createPaymentOrder = async (orderData: CreateOrderRequest): Promise
     status: 'created',
     createdAt: serverTimestamp()
   });
-  
+
   return mockOrderId;
 };
 
@@ -69,13 +68,13 @@ export const initiatePayment = async (
 ): Promise<void> => {
   const currentUser = getCurrentUserOrThrow();
   const userData = await getCurrentUserData();
-  
+
   // Load Razorpay script
   const isScriptLoaded = await loadRazorpayScript();
   if (!isScriptLoaded) {
     throw new Error('Failed to load Razorpay SDK. Please check your internet connection.');
   }
-  
+
   // Create payment order
   const orderId = await createPaymentOrder({
     amount,
@@ -83,7 +82,7 @@ export const initiatePayment = async (
     activityId,
     activityName
   });
-  
+
   // Create payment options
   const options = createPaymentOptions(
     orderId,
@@ -101,7 +100,7 @@ export const initiatePayment = async (
       throw new Error('Payment failed. Please try again.');
     }
   );
-  
+
   // Create and open Razorpay checkout
   const razorpay = new window.Razorpay(options);
   razorpay.open();
@@ -116,7 +115,7 @@ export const handlePaymentSuccess = async (
 ): Promise<void> => {
   const currentUser = getCurrentUserOrThrow();
   const userData = await getCurrentUserData();
-  
+
   // Verify payment (in production, this should be done on the backend)
   const isPaymentValid = await verifyPayment({
     razorpay_payment_id: paymentResponse.razorpay_payment_id,
@@ -124,19 +123,19 @@ export const handlePaymentSuccess = async (
     razorpay_signature: paymentResponse.razorpay_signature,
     activityId
   });
-  
+
   if (!isPaymentValid) {
     throw new Error('Payment verification failed');
   }
-  
+
   // Update activity with payment information
   const activityRef = doc(db, 'activities', activityId);
   const activityDoc = await getDoc(activityRef);
-  
+
   if (!activityDoc.exists()) {
     throw new Error('Activity not found');
   }
-  
+
   const activityData = activityDoc.data();
   const updatedJoiners = {
     ...activityData.joiners,
@@ -151,11 +150,11 @@ export const handlePaymentSuccess = async (
       paidAt: new Date().toISOString()
     }
   };
-  
+
   // Update payment details
   const currentParticipantCount = activityData.paymentDetails?.participantCount || 0;
   const currentTotalCollected = activityData.paymentDetails?.totalCollected || 0;
-  
+
   await updateDoc(activityRef, {
     joiners: updatedJoiners,
     paymentDetails: {
@@ -163,7 +162,7 @@ export const handlePaymentSuccess = async (
       totalCollected: currentTotalCollected + activityData.cost
     }
   });
-  
+
   console.log('Payment successful and activity updated');
 };
 
@@ -175,23 +174,23 @@ export const verifyPayment = async (verificationData: VerifyPaymentRequest): Pro
   // This is a simplified verification for demo purposes
   // In production, you should verify the payment signature on your backend
   // using Razorpay's webhook verification or their Node.js SDK
-  
+
   try {
     // Get order details from Firestore
     const orderRef = doc(db, 'payment_orders', verificationData.razorpay_order_id);
     const orderDoc = await getDoc(orderRef);
-    
+
     if (!orderDoc.exists()) {
       console.error('Order not found');
       return false;
     }
-    
+
     const orderData = orderDoc.data();
     if (orderData.activityId !== verificationData.activityId) {
       console.error('Activity ID mismatch');
       return false;
     }
-    
+
     // Update order status
     await updateDoc(orderRef, {
       status: 'completed',
@@ -199,7 +198,7 @@ export const verifyPayment = async (verificationData: VerifyPaymentRequest): Pro
       signature: verificationData.razorpay_signature,
       completedAt: serverTimestamp()
     });
-    
+
     return true;
   } catch (error) {
     console.error('Payment verification error:', error);

@@ -32,6 +32,7 @@ const PastActivities: React.FC<PastActivitiesProps> = ({ hideHeader = false, onC
   // Load activities when component mounts
   useEffect(() => {
     loadActivities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
