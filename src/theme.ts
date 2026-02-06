@@ -121,63 +121,67 @@ const theme = createTheme({
     borderRadius: 16,
   },
   components: {
-    // App Bar - M3 surface styling
+    // App Bar - Modern Glassmorphism
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: m3Colors.primary.main,
-          backgroundImage: `linear-gradient(135deg, ${m3Colors.primary.main} 0%, ${m3Colors.primary.dark} 100%)`,
-          boxShadow: `0 2px 8px ${alpha(m3Colors.primary.dark, 0.25)}`,
-          borderRadius: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.8)', // Translucent White
+          backdropFilter: 'blur(20px)', // Frosted glass effect
+          color: m3Colors.primary.main, // Teal text to pop on white
+          boxShadow: 'none',
+          borderBottom: `1px solid ${alpha(m3Colors.outline, 0.2)}`,
+          backgroundImage: 'none', // Remove old gradient
         },
       },
     },
-    // Bottom Navigation - M3 styling
+    // Bottom Navigation - Modern Glassmorphism
     MuiBottomNavigation: {
       styleOverrides: {
         root: {
           position: 'fixed',
           bottom: 0,
           width: '100%',
-          height: 72,
-          backgroundColor: m3Colors.surface.container,
-          borderTop: `1px solid ${m3Colors.outline}`,
-          boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.05)',
+          height: 80, // Taller for better touch targets
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(20px)',
+          borderTop: `1px solid ${alpha(m3Colors.outline, 0.2)}`,
+          boxShadow: 'none', // Remove old shadow
         },
       },
     },
     MuiBottomNavigationAction: {
       styleOverrides: {
         root: {
-          padding: '8px 12px 12px',
-          minWidth: 80,
-          color: m3Colors.text.secondary,
+          padding: '12px',
+          minWidth: 64,
+          color: alpha(m3Colors.text.secondary, 0.6), // Subtle inactive state
+          transition: 'all 0.2s ease',
           '&.Mui-selected': {
             color: m3Colors.primary.main,
-          },
-          '& .MuiBottomNavigationAction-label': {
-            fontSize: '0.75rem',
-            fontWeight: 500,
-            marginTop: 4,
-            '&.Mui-selected': {
-              fontSize: '0.75rem',
-              fontWeight: 600,
-            },
+            transform: 'scale(1.1)', // Subtle grow on selection
+            '& .MuiSvgIcon-root': {
+              filter: 'drop-shadow(0 4px 6px rgba(13, 148, 136, 0.2))', // Glow effect
+            }
           },
         },
       },
     },
-    // Cards - M3 elevated style
+    // Cards - Soft Floating Modern
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 20,
-          boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
-          border: `1px solid ${m3Colors.outline}`,
-          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          borderRadius: 24, // Super rounded
+          boxShadow: '0 4px 20px -5px rgba(0, 0, 0, 0.05), 0 0 1px rgba(0,0,0,0.1)', // Diffused soft shadow
+          border: 'none', // Remove heavy borders
+          backgroundColor: 'white',
+          transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease', // Bouncy transition
           '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)',
+            transform: 'translateY(-4px) scale(1.01)',
+            boxShadow: '0 12px 30px -8px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0,0,0,0.1)',
+          },
+          '&:active': {
+            transform: 'scale(0.98)',
+            boxShadow: '0 2px 10px -2px rgba(0, 0, 0, 0.05)',
           },
         },
       },
@@ -185,169 +189,95 @@ const theme = createTheme({
     MuiCardContent: {
       styleOverrides: {
         root: {
-          padding: 20,
+          padding: 24,
           '&:last-child': {
-            paddingBottom: 20,
+            paddingBottom: 24,
           },
         },
       },
     },
-    // Paper - softer shadows
+    // Paper - Soft shadows everywhere
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 20,
+          backgroundImage: 'none',
         },
         elevation1: {
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+          boxShadow: '0 2px 12px -2px rgba(0, 0, 0, 0.05)',
         },
         elevation3: {
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.08)',
         },
       },
     },
-    // Buttons - M3 filled tonal style
+    // Buttons - Modern tactile
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          padding: '10px 24px',
+          borderRadius: 100, // Pill shaped mostly
+          padding: '12px 28px',
           fontWeight: 600,
+          fontSize: '0.95rem',
+          letterSpacing: '-0.01em',
           boxShadow: 'none',
-          '&:hover': {
-            boxShadow: 'none',
+          textTransform: 'none', // Ensure mixed case
+          transition: 'all 0.15s ease',
+          '&:active': {
+            transform: 'scale(0.96)',
           },
         },
         contained: {
+          boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)', // Colored shadow
           '&:hover': {
+            boxShadow: '0 6px 16px rgba(13, 148, 136, 0.3)',
             transform: 'translateY(-1px)',
-            boxShadow: `0 4px 12px ${alpha(m3Colors.primary.main, 0.3)}`,
           },
         },
         containedPrimary: {
-          background: `linear-gradient(135deg, ${m3Colors.primary.main} 0%, ${m3Colors.primary.dark} 100%)`,
+          // Flat vibrant color is very modern.
+          background: '#0D9488',
           '&:hover': {
-            background: `linear-gradient(135deg, ${m3Colors.primary.light} 0%, ${m3Colors.primary.main} 100%)`,
+            background: '#0F766E',
           },
-        },
-        outlined: {
-          borderWidth: 2,
-          '&:hover': {
-            borderWidth: 2,
-            backgroundColor: alpha(m3Colors.primary.main, 0.04),
-          },
-        },
-        outlinedPrimary: {
-          borderColor: m3Colors.primary.main,
         },
       },
     },
-    // FAB - M3 styling
+    // FAB - Floating pill
     MuiFab: {
       styleOverrides: {
         root: {
-          boxShadow: `0 4px 16px ${alpha(m3Colors.primary.main, 0.3)}`,
-          '&:hover': {
-            boxShadow: `0 6px 20px ${alpha(m3Colors.primary.main, 0.4)}`,
-          },
-        },
-        primary: {
-          background: `linear-gradient(135deg, ${m3Colors.primary.main} 0%, ${m3Colors.primary.dark} 100%)`,
-          '&:hover': {
-            background: `linear-gradient(135deg, ${m3Colors.primary.light} 0%, ${m3Colors.primary.main} 100%)`,
-          },
-        },
-      },
+          boxShadow: '0 8px 20px rgba(13, 148, 136, 0.3)',
+          '&:active': {
+            transform: 'scale(0.94)',
+          }
+        }
+      }
     },
-    // Chips - M3 styling
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          fontWeight: 500,
-        },
-        colorPrimary: {
-          backgroundColor: m3Colors.primary.container,
-          color: m3Colors.primary.onContainer,
+          borderRadius: 8, // Squircle
+          fontWeight: 600,
         },
       },
     },
-    // Text Fields - M3 outlined style
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 12,
-            '& fieldset': {
-              borderColor: m3Colors.outlineVariant,
-              borderWidth: 2,
-            },
-            '&:hover fieldset': {
-              borderColor: m3Colors.primary.light,
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: m3Colors.primary.main,
-            },
-          },
-        },
-      },
-    },
-    // Alerts - rounded
-    MuiAlert: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-        },
-      },
-    },
-    // Snackbar
-    MuiSnackbarContent: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          backgroundColor: m3Colors.text.primary,
-        },
-      },
-    },
-    // Icon Buttons
-    MuiIconButton: {
-      styleOverrides: {
-        root: {
-          transition: 'background-color 0.2s ease, transform 0.2s ease',
-          '&:hover': {
-            backgroundColor: alpha(m3Colors.primary.main, 0.08),
-          },
-        },
-      },
-    },
-    // Tooltip
-    MuiTooltip: {
-      styleOverrides: {
-        tooltip: {
-          borderRadius: 8,
-          backgroundColor: m3Colors.text.primary,
-          fontSize: '0.75rem',
-          padding: '8px 12px',
-        },
-      },
-    },
-    // Drawer - Global Desktop Constraint for Bottom Sheets
-    // This ensures all bottom sheets (Create, Edit, etc.) adhere to the 480px app width
-    // regardless of where they are in the component tree.
+    // Drawer - Global Desktop Constraint
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          // Target bottom-anchored drawers specifically using the standard class
-          '&.MuiDrawer-paperAnchorBottom': {
-            maxWidth: '480px',
-            width: '100%', // Ensure it fills space up to maxWidth
-            margin: '0 auto', // Center horizontally
-            left: 0,
-            right: 0, // Force detailed positioning for margin: auto to work
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-          },
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          boxShadow: '0 -4px 30px rgba(0,0,0,0.1)',
         },
+        // Anchor existing logic for desktop width
+        paperAnchorBottom: {
+          maxWidth: '480px',
+          width: '100%',
+          margin: '0 auto',
+          left: 0,
+          right: 0,
+        }
       },
     },
   },
