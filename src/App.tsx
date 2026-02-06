@@ -4,8 +4,6 @@ import { Box, AppBar, Toolbar, Typography, Button, CircularProgress, Alert } fro
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import PersonIcon from '@mui/icons-material/Person';
-import PeopleIcon from '@mui/icons-material/People';
-import LocalActivityIcon from '@mui/icons-material/LocalActivity';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { auth } from './firebase/config';
