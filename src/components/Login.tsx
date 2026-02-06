@@ -3,7 +3,6 @@ import { Box, Button, Container, Paper, Typography, CircularProgress } from '@mu
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase/config';
 import GoogleIcon from '@mui/icons-material/Google';
-import GroupsIcon from '@mui/icons-material/Groups';
 
 function Login() {
   const [isLoading, setIsLoading] = useState(false);
