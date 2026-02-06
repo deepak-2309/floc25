@@ -4,7 +4,7 @@ import { Box, AppBar, Toolbar, Typography, Button, CircularProgress, Alert } fro
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import PersonIcon from '@mui/icons-material/Person';
-import PersonSearchIcon from '@mui/icons-material/PersonSearch';
+import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { auth } from './firebase/config';
 import { signOut, onAuthStateChanged, User } from 'firebase/auth';
@@ -197,7 +197,7 @@ function App() {
           />
           <BottomNavigationAction
             label="Friends"
-            icon={<PersonSearchIcon />}
+            icon={<BakeryDiningIcon />}
             value={ROUTES.FRIENDS}
           />
           <BottomNavigationAction
