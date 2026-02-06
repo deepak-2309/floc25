@@ -8,7 +8,6 @@ import PeopleIcon from '@mui/icons-material/People';
 import LocalActivityIcon from '@mui/icons-material/LocalActivity';
 import { auth } from './firebase/config';
 import { signOut, onAuthStateChanged, User } from 'firebase/auth';
-import theme from './theme';
 
 // Component imports for different pages/views
 import Login from './components/Login';
