@@ -301,7 +301,7 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, o
                         {/* Connection date in compact format */}
                         {connection.connectedAt && (
                           <Typography component="span" variant="body2" color="text.secondary">
-                            (since {formatConnectionDate(connection.connectedAt)})
+                            {formatConnectionDate(connection.connectedAt)}
                           </Typography>
                         )}
                       </Box>

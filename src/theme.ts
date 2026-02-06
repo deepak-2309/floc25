@@ -128,6 +128,7 @@ const theme = createTheme({
           backgroundColor: m3Colors.primary.main,
           backgroundImage: `linear-gradient(135deg, ${m3Colors.primary.main} 0%, ${m3Colors.primary.dark} 100%)`,
           boxShadow: `0 2px 8px ${alpha(m3Colors.primary.dark, 0.25)}`,
+          borderRadius: 0,
         },
       },
     },
