@@ -92,7 +92,8 @@ const LandingPage: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: 'linear-gradient(135deg, #0D9488 0%, #0F766E 50%, #134E4A 100%)',
+                    // Modern Mesh Gradient
+                    background: 'radial-gradient(at 0% 0%, #115E59 0%, transparent 50%), radial-gradient(at 100% 0%, #0D9488 0%, transparent 50%), radial-gradient(at 50% 100%, #134E4A 0%, transparent 50%), #0F766E',
                     position: 'relative',
                     overflow: 'hidden',
                     // Animated background orbs
@@ -145,11 +146,14 @@ const LandingPage: React.FC = () => {
                         sx={{
                             color: 'rgba(255, 255, 255, 0.9)',
                             mb: 8,
-                            fontFamily: 'Pacifico, cursive',
+                            fontFamily: 'Pacifico, cursive', // Match "floc" font
+                            fontStyle: 'italic',
+                            fontWeight: 400, // Pacifico is usually 400
+                            letterSpacing: '0.02em',
                             fontSize: { xs: '1.25rem', md: '1.5rem' },
                         }}
                     >
-                        Join your friends, IRL!
+                        hang with your tribe
                     </Typography>
 
                     {/* Example Activity Cards */}
@@ -221,8 +225,9 @@ const LandingPage: React.FC = () => {
                                 width: { xs: '100%', sm: 'auto' },
                                 maxWidth: { xs: '100%', sm: 280 },
                                 flex: { sm: 1 },
+                                transform: { sm: 'translateY(-24px)' }, // Stagger effect
                                 '&:hover': {
-                                    transform: 'translateY(-4px)',
+                                    transform: { xs: 'translateY(-4px)', sm: 'translateY(-28px)' },
                                 },
                             }}
                         >
