@@ -131,6 +131,7 @@ const LandingPage: React.FC = () => {
                         variant="h2"
                         sx={{
                             fontFamily: 'Pacifico, cursive',
+                            fontWeight: 400, // Regular weight
                             color: 'white',
                             mb: 2,
                             fontSize: { xs: '3rem', md: '4rem' },
@@ -326,18 +327,7 @@ const LandingPage: React.FC = () => {
                     >
                         Get Started
                     </Button>
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            mt: 2,
-                            fontSize: '0.9rem',
-                            fontWeight: 500,
-                            letterSpacing: '0.02em',
-                        }}
-                    >
-                        No platform fee
-                    </Typography>
+
                 </Container>
             </Box>
 
@@ -372,7 +362,7 @@ const LandingPage: React.FC = () => {
                             mx: 'auto',
                         }}
                     >
-                        Powerful features to help you bring friends together
+                        Powerful features to bring friends together. Completely free.
                     </Typography>
 
                     <Grid container spacing={4}>
