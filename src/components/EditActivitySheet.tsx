@@ -11,7 +11,12 @@ import {
   Tooltip,
   Snackbar,
   Collapse,
-  InputAdornment
+  InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ShareIcon from '@mui/icons-material/Share';
@@ -41,6 +46,7 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
   const [isPaid, setIsPaid] = useState<boolean>(false);
   const [cost, setCost] = useState<string>('');
   const [shareSnackbar, setShareSnackbar] = useState<boolean>(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
 
   // Initialize form with activity data when opened
   useEffect(() => {
@@ -84,6 +90,7 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
   const handleDelete = () => {
     if (onDelete) {
       onDelete();
+      setDeleteConfirmOpen(false);
       onClose();
     }
   };
@@ -225,24 +232,42 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
 
           <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <Button
-              type="submit"
-              variant="contained"
-              sx={{ flex: 1 }}
-            >
-              Save Changes
-            </Button>
-
-            <Button
-              onClick={handleDelete}
+              onClick={() => setDeleteConfirmOpen(true)}
               variant="contained"
               color="error"
               sx={{ flex: 1 }}
             >
               Delete Activity
             </Button>
+
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{ flex: 1 }}
+            >
+              Save Changes
+            </Button>
           </Box>
         </Box>
       </Box>
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+      >
+        <DialogTitle>Delete Activity?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this activity? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={shareSnackbar}

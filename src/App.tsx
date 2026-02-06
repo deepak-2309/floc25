@@ -6,6 +6,8 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import PersonIcon from '@mui/icons-material/Person';
 import PeopleIcon from '@mui/icons-material/People';
 import LocalActivityIcon from '@mui/icons-material/LocalActivity';
+import PersonSearchIcon from '@mui/icons-material/PersonSearch';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { auth } from './firebase/config';
 import { signOut, onAuthStateChanged, User } from 'firebase/auth';
 
@@ -143,26 +145,15 @@ function App() {
             </Typography>
             {/* Spacer - always present to push sign out to the right */}
             <Box sx={{ flexGrow: 1 }} />
-            <Typography
-              variant="body2"
-              component="div"
-              sx={{
-                textAlign: 'center',
-                color: 'rgba(255, 255, 255, 0.85)',
-                fontFamily: 'Pacifico',
-                display: { xs: 'none', sm: 'block' },
-                position: 'absolute',
-                left: '50%',
-                transform: 'translateX(-50%)',
-              }}
-            >
-              join your friends, irl!
-            </Typography>
+
             <Button
               color="inherit"
               onClick={handleLogout}
               size="small"
               sx={{
+                fontFamily: 'Pacifico',
+                fontWeight: 400,
+                fontSize: '1rem',
                 borderRadius: 2,
                 px: 2,
                 '&:hover': {
@@ -170,7 +161,7 @@ function App() {
                 },
               }}
             >
-              Sign out
+              Sign Out
             </Button>
           </Toolbar>
         </AppBar>
@@ -202,13 +193,13 @@ function App() {
           sx={{ position: 'sticky', bottom: 0, zIndex: 1100 }}
         >
           <BottomNavigationAction
-            label="My Plans"
-            icon={<LocalActivityIcon />}
+            label="Going"
+            icon={<CalendarMonthIcon />}
             value={ROUTES.MY_ACTIVITIES}
           />
           <BottomNavigationAction
             label="Friends"
-            icon={<PeopleIcon />}
+            icon={<PersonSearchIcon />}
             value={ROUTES.FRIENDS}
           />
           <BottomNavigationAction
