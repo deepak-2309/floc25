@@ -71,22 +71,6 @@ function Login() {
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           }}
         >
-          {/* App Icon */}
-          <Box
-            sx={{
-              width: 72,
-              height: 72,
-              borderRadius: '20px',
-              background: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 3,
-              boxShadow: '0 4px 16px rgba(13, 148, 136, 0.3)',
-            }}
-          >
-            <GroupsIcon sx={{ fontSize: 40, color: 'white' }} />
-          </Box>
 
           {/* App Title */}
           <Typography
@@ -95,23 +79,12 @@ function Login() {
             sx={{
               fontFamily: 'Pacifico, cursive',
               color: '#0D9488',
-              mb: 1,
+              mb: 6,
             }}
           >
             floc
           </Typography>
 
-          {/* Tagline */}
-          <Typography
-            variant="body1"
-            sx={{
-              mb: 4,
-              color: 'text.secondary',
-              textAlign: 'center',
-            }}
-          >
-            Join your friends, IRL!
-          </Typography>
 
           {/* Error message */}
           {error && (
@@ -155,16 +128,7 @@ function Login() {
           </Button>
 
           {/* Footer text */}
-          <Typography
-            variant="caption"
-            sx={{
-              mt: 3,
-              color: 'text.disabled',
-              textAlign: 'center',
-            }}
-          >
-            Plan activities with your friends
-          </Typography>
+
         </Paper>
       </Container>
     </Box>
