@@ -194,7 +194,7 @@ function App() {
             value={ROUTES.MY_ACTIVITIES}
           />
           <BottomNavigationAction
-            icon={<BakeryDiningIcon />}
+            icon={<BakeryDiningIcon sx={{ fontSize: 32 }} />}
             value={ROUTES.FRIENDS}
           />
           <BottomNavigationAction
