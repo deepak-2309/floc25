@@ -8,10 +8,13 @@ import {
   IconButton,
   FormControlLabel,
   Switch,
-  Tooltip
+  Tooltip,
+  InputAdornment,
+  Collapse
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ShareIcon from '@mui/icons-material/Share';
+import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
 import { Activity } from './ActivityCard';
 
 interface CreateActivitySheetProps {
@@ -27,25 +30,33 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
 }) => {
   const [selectedDateTime, setSelectedDateTime] = useState<string>('');
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
+  const [isPaid, setIsPaid] = useState<boolean>(false);
+  const [cost, setCost] = useState<string>('');
+
+
 
   // Reset form when sheet is closed
   useEffect(() => {
     if (!open) {
       setSelectedDateTime('');
       setIsPrivate(false);
+      setIsPaid(false);
+      setCost('');
     }
   }, [open]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    
+
     const newActivity = {
       name: formData.get('name') as string,
       location: formData.get('location') as string,
       dateTime: new Date(selectedDateTime),
       description: formData.get('description') as string,
       isPrivate: isPrivate,
+      isPaid: isPaid,
+      ...(isPaid && { cost: parseFloat(cost) * 100, currency: 'INR' }), // Only include cost/currency for paid activities
       userId: '', // This will be set by the writeActivity function
       createdBy: '', // This will be set by the writeActivity function
     };
@@ -83,7 +94,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
             name="name"
             placeholder="e.g., Morning Run"
           />
-          
+
           <TextField
             required
             fullWidth
@@ -91,7 +102,7 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
             name="location"
             placeholder="e.g., City Park"
           />
-          
+
           <TextField
             required
             fullWidth
@@ -113,32 +124,69 @@ const CreateActivitySheet: React.FC<CreateActivitySheetProps> = ({
             rows={3}
           />
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="Private"
+              />
+              <Tooltip title="Create activity first to share - you'll get a share option after creation">
+                <span>
+                  <Button
+                    disabled={true}
+                    aria-label="share"
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                    startIcon={<ShareIcon />}
+                    sx={{ minWidth: '100px' }}
+                  >
+                    Share
+                  </Button>
+                </span>
+              </Tooltip>
+            </Box>
+
             <FormControlLabel
               control={
                 <Switch
-                  checked={isPrivate}
-                  onChange={(e) => setIsPrivate(e.target.checked)}
+                  checked={isPaid}
+                  onChange={(e) => setIsPaid(e.target.checked)}
                   color="primary"
                 />
               }
-              label="Mark as private"
+              label="Paid activity"
             />
-            <Tooltip title="Create activity first to share - you'll get a share option after creation">
-              <span>
-                <Button 
-                  disabled={true}
-                  aria-label="share" 
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                  startIcon={<ShareIcon />}
-                  sx={{ minWidth: '100px' }}
-                >
-                  Share
-                </Button>
-              </span>
-            </Tooltip>
+
+            <Collapse in={isPaid}>
+              <TextField
+                fullWidth
+                label="Cost per person"
+                type="number"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                placeholder="0"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CurrencyRupeeIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                inputProps={{
+                  min: 0,
+                  step: 0.01
+                }}
+                helperText="Enter amount in INR"
+                required={isPaid}
+              />
+            </Collapse>
           </Box>
 
           <Button

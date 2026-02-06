@@ -67,34 +67,15 @@ service cloud.firestore {
 
       // Allow users to update activities if they:
       // 1. Own the activity (full update)
-      // 2. Are joining or leaving the activity
+      // 2. Are modifying joiners or payment details (simplified for development)
       allow update: if isAuthenticated() && (
         // Allow full updates if user owns the activity
         resource.data.userId == request.auth.uid ||
-        // Allow joiners updates if:
+        // Allow joiners/payment updates for development
         (
-          // Only updating joiners field
-          isOnlyJoinersUpdate() &&
-          (
-            // User is joining (adding themselves to joiners)
-            (
-              // User is not currently a joiner
-              !(request.auth.uid in resource.data.joiners) &&
-              // User appears in new joiners
-              request.resource.data.joiners[request.auth.uid] != null &&
-              // All other joiners remain unchanged
-              resource.data.joiners.size() + 1 == request.resource.data.joiners.size()
-            ) ||
-            // OR user is leaving (removing themselves from joiners)
-            (
-              // User is currently a joiner
-              resource.data.joiners[request.auth.uid] != null &&
-              // User is not in new joiners
-              !(request.auth.uid in request.resource.data.joiners) &&
-              // All other joiners remain unchanged
-              resource.data.joiners.size() == request.resource.data.joiners.size() + 1
-            )
-          )
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['joiners']) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['joiners', 'paymentDetails']) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paymentDetails'])
         )
       );
 
@@ -103,6 +84,15 @@ service cloud.firestore {
 
       // Allow listing activities
       allow list: if isAuthenticated();
+    }
+
+    // Rules for payment orders collection
+    match /payment_orders/{orderId} {
+      // Allow users to read and write their own payment orders
+      allow read, write: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Allow creating new payment orders
+      allow create: if isAuthenticated();
     }
   }
 } 

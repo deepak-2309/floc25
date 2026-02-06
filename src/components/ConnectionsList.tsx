@@ -40,7 +40,12 @@ interface Connection {
  * Shows either username or email for each connection, with username taking precedence if available.
  * Includes an "Add Connection" button that opens a dialog for entering a new connection's email.
  */
-const ConnectionsList: React.FC = () => {
+interface ConnectionsListProps {
+  hideHeader?: boolean;
+  onCountChange?: (count: number) => void;
+}
+
+const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, onCountChange }) => {
   // State management for connections and UI states
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,6 +81,7 @@ const ConnectionsList: React.FC = () => {
       const fetchedConnections = await fetchUserConnections();
       console.log('Fetched connections:', fetchedConnections);
       setConnections(fetchedConnections);
+      onCountChange?.(fetchedConnections.length);
     } catch (error) {
       console.error('Error fetching connections:', error);
       setError('Failed to load connections');
@@ -137,7 +143,7 @@ const ConnectionsList: React.FC = () => {
    */
   const formatConnectionDate = (timestamp: any) => {
     if (!timestamp) return '';
-    
+
     let date;
     if (typeof timestamp === 'string') {
       date = new Date(timestamp);
@@ -161,7 +167,7 @@ const ConnectionsList: React.FC = () => {
    */
   const getDateFromTimestamp = (timestamp: any): Date | null => {
     if (!timestamp) return null;
-    
+
     if (typeof timestamp === 'string') {
       return new Date(timestamp);
     } else if (timestamp.toDate) {
@@ -212,16 +218,31 @@ const ConnectionsList: React.FC = () => {
   return (
     <Box>
       {/* Header section with title, count and add button */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">Connections ({connections.length})</Typography>
-        <IconButton
-          color="primary"
-          onClick={() => setIsAddDialogOpen(true)}
-          size="small"
-        >
-          <AddIcon />
-        </IconButton>
-      </Box>
+      {!hideHeader && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6">Connections ({connections.length})</Typography>
+          <IconButton
+            color="primary"
+            onClick={() => setIsAddDialogOpen(true)}
+            size="small"
+          >
+            <AddIcon />
+          </IconButton>
+        </Box>
+      )}
+      {hideHeader && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+          <Button
+            color="primary"
+            onClick={() => setIsAddDialogOpen(true)}
+            size="small"
+            startIcon={<AddIcon />}
+            sx={{ textTransform: 'none' }}
+          >
+            Add New
+          </Button>
+        </Box>
+      )}
 
       {/* Success message snackbar */}
       <Snackbar
@@ -250,25 +271,8 @@ const ConnectionsList: React.FC = () => {
           No connections yet
         </Typography>
       ) : (
-        // List of connections with fixed height and scrolling
-        <Box sx={{ 
-          maxHeight: '144px',
-          overflowY: 'auto',
-          '&::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            background: '#f1f1f1',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: '#888',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            background: '#555',
-          },
-        }}>
+        // List of connections (no internal scroll - use page scroll with collapse/expand)
+        <Box>
           <List dense>
             {connections
               .sort((a, b) => {
@@ -278,9 +282,9 @@ const ConnectionsList: React.FC = () => {
                 return dateB.getTime() - dateA.getTime();
               })
               .map((connection) => (
-                <ListItem 
+                <ListItem
                   key={connection.id}
-                  sx={{ 
+                  sx={{
                     py: 0.5,
                     minHeight: '48px'
                   }}
@@ -393,7 +397,7 @@ const ConnectionsList: React.FC = () => {
           <Button onClick={closeDeleteDialog}>
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleConfirmDelete}
             color="error"
             variant="contained"

@@ -11,6 +11,11 @@ A mobile-friendly web application built with React and Material-UI that allows u
   - Friends' Activities
   - Profile
 - Sign out functionality
+- **NEW: Paid Activities with Razorpay Integration**
+  - Create paid activities with custom pricing
+  - Secure UPI payments using Razorpay Turbo UPI
+  - Payment status tracking and verification
+  - Real-time payment collection analytics
 
 ## Getting Started
 
@@ -29,7 +34,7 @@ npm install
 ```
 
 3. Set up environment variables:
-   - Copy `.env.example` to `.env`
+   - Create a `.env` file in the root directory
    - Fill in your Firebase configuration values:
      - REACT_APP_FIREBASE_API_KEY
      - REACT_APP_FIREBASE_AUTH_DOMAIN
@@ -37,6 +42,10 @@ npm install
      - REACT_APP_FIREBASE_STORAGE_BUCKET
      - REACT_APP_FIREBASE_MESSAGING_SENDER_ID
      - REACT_APP_FIREBASE_APP_ID
+   - Add Razorpay configuration (for paid activities feature):
+     - REACT_APP_RAZORPAY_KEY_ID
+     - REACT_APP_RAZORPAY_KEY_SECRET
+     - REACT_APP_RAZORPAY_WEBHOOK_SECRET
 
 ### Running the App
 
@@ -75,4 +84,33 @@ src/
 - TypeScript
 - Material-UI (MUI)
 - React Router
-- Firebase Authentication 
+- Firebase Authentication
+- Firebase Firestore
+- Razorpay (Payment Gateway)
+- Razorpay Turbo UPI
+
+## Paid Activities Setup
+
+To enable paid activities with Razorpay integration:
+
+1. **Create Razorpay Account**: Sign up at [Razorpay Dashboard](https://dashboard.razorpay.com/)
+
+2. **Request Turbo UPI Feature**: Raise a request with Razorpay support to activate Turbo UPI on your account (as mentioned in the [Razorpay Turbo UPI documentation](https://razorpay.com/docs/payments/payment-methods/upi/turbo-upi/))
+
+3. **Get API Keys**: 
+   - Navigate to Settings > API Keys in Razorpay Dashboard
+   - Generate Test/Live API keys
+   - Add them to your `.env` file
+
+4. **Configure Webhooks**: Set up webhook endpoints for payment verification (for production deployment)
+
+5. **Test Payments**: Use Razorpay test mode for development and testing
+
+## Note on Security
+
+⚠️ **Important**: The current implementation includes simplified payment verification for demo purposes. For production use:
+
+- Implement proper backend API for order creation
+- Use server-side payment verification
+- Set up Razorpay webhooks for payment confirmation
+- Implement proper error handling and retry mechanisms 

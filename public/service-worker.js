@@ -1,4 +1,4 @@
-const CACHE_NAME = 'floc-cache-v1';
+const CACHE_NAME = 'floc-cache-v2';
 const OFFLINE_URL = '/offline.html';
 const urlsToCache = [
   '/',

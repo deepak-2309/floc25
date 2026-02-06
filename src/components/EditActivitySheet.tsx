@@ -9,10 +9,13 @@ import {
   FormControlLabel,
   Switch,
   Tooltip,
-  Snackbar
+  Snackbar,
+  Collapse,
+  InputAdornment
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ShareIcon from '@mui/icons-material/Share';
+import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
 import { Activity } from './ActivityCard';
 
 interface EditActivitySheetProps {
@@ -32,9 +35,11 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
 }) => {
   // Add debug logging
   console.log('EditActivitySheet rendered with activity:', activity);
-  
+
   const [selectedDateTime, setSelectedDateTime] = useState<string>('');
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
+  const [isPaid, setIsPaid] = useState<boolean>(false);
+  const [cost, setCost] = useState<string>('');
   const [shareSnackbar, setShareSnackbar] = useState<boolean>(false);
 
   // Initialize form with activity data when opened
@@ -47,24 +52,29 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
       const day = String(date.getDate()).padStart(2, '0');
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
-      
+
       const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
       setSelectedDateTime(formattedDateTime);
       setIsPrivate(activity.isPrivate || false);
+      setIsPaid(activity.isPaid || false);
+      setCost(activity.cost ? String(activity.cost / 100) : '');
     }
   }, [open, activity]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    
+
     const updatedActivity = {
       ...activity,
       name: formData.get('name') as string,
       location: formData.get('location') as string,
       dateTime: new Date(selectedDateTime),
       description: formData.get('description') as string,
-      isPrivate: isPrivate
+      isPrivate: isPrivate,
+      isPaid: isPaid,
+      cost: isPaid ? parseFloat(cost) * 100 : undefined,
+      currency: isPaid ? 'INR' : undefined,
     };
 
     onSubmit(updatedActivity);
@@ -118,7 +128,7 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
             defaultValue={activity.name}
             placeholder="e.g., Morning Run"
           />
-          
+
           <TextField
             required
             fullWidth
@@ -127,7 +137,7 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
             defaultValue={activity.location}
             placeholder="e.g., City Park"
           />
-          
+
           <TextField
             required
             fullWidth
@@ -150,53 +160,90 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
             rows={3}
           />
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="Private"
+              />
+              <Tooltip title="Share activity link">
+                <Button
+                  onClick={handleShare}
+                  aria-label="share"
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                  startIcon={<ShareIcon />}
+                  sx={{ minWidth: '100px' }}
+                >
+                  Share
+                </Button>
+              </Tooltip>
+            </Box>
+
             <FormControlLabel
               control={
                 <Switch
-                  checked={isPrivate}
-                  onChange={(e) => setIsPrivate(e.target.checked)}
+                  checked={isPaid}
+                  onChange={(e) => setIsPaid(e.target.checked)}
                   color="primary"
                 />
               }
-              label="Mark as private"
+              label="Paid activity"
             />
-            <Tooltip title="Share activity link">
-              <Button 
-                onClick={handleShare}
-                aria-label="share" 
-                color="primary"
-                variant="outlined"
-                size="small"
-                startIcon={<ShareIcon />}
-                sx={{ minWidth: '100px', width: 'auto', display: 'flex' }}
-              >
-                Share
-              </Button>
-            </Tooltip>
+
+            <Collapse in={isPaid}>
+              <TextField
+                fullWidth
+                label="Cost per person"
+                type="number"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                placeholder="0"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CurrencyRupeeIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                inputProps={{
+                  min: 0,
+                  step: 0.01
+                }}
+                helperText="Enter amount in INR"
+                required={isPaid}
+              />
+            </Collapse>
           </Box>
 
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={{ mt: 2 }}
-          >
-            Save Changes
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{ flex: 1 }}
+            >
+              Save Changes
+            </Button>
 
-          <Button
-            onClick={handleDelete}
-            variant="contained"
-            color="error"
-            fullWidth
-            sx={{ mt: 1 }}
-          >
-            Delete Activity
-          </Button>
+            <Button
+              onClick={handleDelete}
+              variant="contained"
+              color="error"
+              sx={{ flex: 1 }}
+            >
+              Delete Activity
+            </Button>
+          </Box>
         </Box>
       </Box>
-      
+
       <Snackbar
         open={shareSnackbar}
         autoHideDuration={2000}

@@ -2,6 +2,7 @@ import { collection, addDoc, doc, getDoc, getDocs, query, where, updateDoc, dele
 import { db, auth } from './config';
 import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils';
 import { Activity } from '../components/ActivityCard'; // Assuming ActivityCard is one level up
+import { initiatePayment, hasUserPaid } from './paymentService';
 
 /**
  * Creates a new activity in Firestore
@@ -15,23 +16,42 @@ export const writeActivity = async (activityData: {
   dateTime: Date;
   description: string;
   isPrivate?: boolean;
+  isPaid?: boolean;
+  cost?: number;
+  currency?: string;
 }) => {
   const currentUser = getCurrentUserOrThrow();
   const userData = await getCurrentUserData();
   const creatorName = userData?.username || 'Anonymous';
 
   const docRef = await addDoc(collection(db, 'activities'), {
-    ...activityData,
+    name: activityData.name,
+    location: activityData.location,
+    description: activityData.description,
     dateTime: activityData.dateTime.toISOString(),
     createdAt: new Date().toISOString(),
     userId: currentUser.uid,
     createdBy: creatorName,
     isPrivate: activityData.isPrivate || false,
+    isPaid: activityData.isPaid || false,
+    ...(activityData.isPaid && {
+      cost: activityData.cost,
+      currency: activityData.currency,
+      paymentDetails: {
+        totalCollected: 0,
+        participantCount: 0
+      }
+    }),
     joiners: {
       [currentUser.uid]: {
         email: currentUser.email,
         username: userData?.username || null,
-        joinedAt: new Date().toISOString()
+        joinedAt: new Date().toISOString(),
+        ...(activityData.isPaid && {
+          paymentStatus: 'completed' as const,
+          paidAmount: 0, // Creator doesn't pay
+          paidAt: new Date()
+        })
       }
     }
   });
@@ -140,7 +160,7 @@ export const fetchConnectionsActivities = async () => {
     }
 
     const activitiesRef = collection(db, 'activities');
-    
+
     // Get activities created by connections
     const createdByConnectionsQuery = query(
       activitiesRef,
@@ -170,7 +190,7 @@ export const fetchConnectionsActivities = async () => {
       if (activityData.isPrivate) {
         return;
       }
-      
+
       const creatorId = activityData.userId;
       const creatorInfo = userData.connections[creatorId];
       const createdByName = creatorInfo ? (creatorInfo.username || creatorInfo.email) : 'Unknown User';
@@ -194,7 +214,7 @@ export const fetchConnectionsActivities = async () => {
           if (activityData.isPrivate) {
             return;
           }
-          
+
           // For activities only joined by connections (not created), don't allow current user to join
           activitiesMap.set(doc.id, {
             ...activityData,
@@ -254,6 +274,7 @@ export const updateActivity = async (activity: Activity) => {
 
 /**
  * Joins an activity by adding the current user to its joiners list
+ * For paid activities, initiates payment flow
  * If the user is not connected to the activity creator, they will be connected
  * @param activityId The ID of the activity to join
  * @param shouldConnect Whether to connect with the creator (defaults to false)
@@ -266,13 +287,31 @@ export const joinActivity = async (activityId: string, shouldConnect: boolean = 
   try {
     const activityRef = doc(db, 'activities', activityId);
     const activityDoc = await getDoc(activityRef);
-    
+
     if (!activityDoc.exists()) {
       throw new Error('Activity not found');
     }
 
     const activityData = activityDoc.data();
     const creatorId = activityData.userId;
+
+    // Check if activity is paid and user hasn't paid yet
+    if (activityData.isPaid && creatorId !== currentUser.uid) {
+      const hasAlreadyPaid = hasUserPaid(activityData, currentUser.uid);
+
+      if (!hasAlreadyPaid) {
+        // Initiate payment flow
+        await initiatePayment(
+          activityId,
+          activityData.name,
+          activityData.cost
+        );
+
+        // Payment flow will handle joining after successful payment
+        // Exit here to let payment flow complete
+        return;
+      }
+    }
 
     // Check if user is already connected to creator
     const isConnected = userData?.connections && userData.connections[creatorId];
@@ -306,13 +345,22 @@ export const joinActivity = async (activityId: string, shouldConnect: boolean = 
       });
     }
 
-    // Join the activity
+    // Join the activity (for free activities or after payment is complete)
+    const joinerData: any = {
+      email: currentUser.email,
+      username: userData?.username || null,
+      joinedAt: new Date().toISOString()
+    };
+
+    // For paid activities, add payment status if not already set
+    if (activityData.isPaid && !activityData.joiners?.[currentUser.uid]?.paymentStatus) {
+      joinerData.paymentStatus = 'completed';
+      joinerData.paidAmount = activityData.cost;
+      joinerData.paidAt = new Date().toISOString();
+    }
+
     await updateDoc(activityRef, {
-      [`joiners.${currentUser.uid}`]: {
-        email: currentUser.email,
-        username: userData?.username || null,
-        joinedAt: new Date().toISOString()
-      }
+      [`joiners.${currentUser.uid}`]: joinerData
     });
 
     console.log('Successfully joined activity');
@@ -333,7 +381,7 @@ export const leaveActivity = async (activityId: string) => {
   try {
     const activityRef = doc(db, 'activities', activityId);
     const activityDoc = await getDoc(activityRef);
-    
+
     if (!activityDoc.exists()) {
       throw new Error('Activity not found');
     }
@@ -360,7 +408,7 @@ export const leaveActivity = async (activityId: string) => {
  * @returns boolean indicating if the current user has joined
  */
 export const hasUserJoined = (activity: Activity): boolean => {
-  const currentUser = auth.currentUser; 
+  const currentUser = auth.currentUser;
   if (!currentUser || !activity.joiners) {
     return false;
   }

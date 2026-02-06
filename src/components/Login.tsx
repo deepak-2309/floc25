@@ -3,6 +3,7 @@ import { Box, Button, Container, Paper, Typography, CircularProgress } from '@mu
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase/config';
 import GoogleIcon from '@mui/icons-material/Google';
+import GroupsIcon from '@mui/icons-material/Groups';
 
 function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,58 +23,151 @@ function Login() {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0D9488 0%, #0F766E 50%, #134E4A 100%)',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: '-50%',
+          right: '-20%',
+          width: '70%',
+          height: '100%',
+          background: 'radial-gradient(circle, rgba(249, 115, 22, 0.15) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          bottom: '-30%',
+          left: '-10%',
+          width: '50%',
+          height: '80%',
+          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 60%)',
+          pointerEvents: 'none',
+        },
+      }}
+    >
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
         <Paper
-          elevation={3}
+          elevation={0}
           sx={{
-            p: 4,
+            p: { xs: 4, sm: 5 },
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             width: '100%',
+            maxWidth: 400,
+            mx: 'auto',
+            borderRadius: 4,
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           }}
         >
-          <Typography variant="h4" component="h1" gutterBottom>
-            Welcome to Floc
+          {/* App Icon */}
+          <Box
+            sx={{
+              width: 72,
+              height: 72,
+              borderRadius: '20px',
+              background: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mb: 3,
+              boxShadow: '0 4px 16px rgba(13, 148, 136, 0.3)',
+            }}
+          >
+            <GroupsIcon sx={{ fontSize: 40, color: 'white' }} />
+          </Box>
+
+          {/* App Title */}
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              fontFamily: 'Pacifico, cursive',
+              color: '#0D9488',
+              mb: 1,
+            }}
+          >
+            floc
           </Typography>
-          <Typography variant="body1" sx={{ mb: 3 }}>
-            Please sign in to continue
+
+          {/* Tagline */}
+          <Typography
+            variant="body1"
+            sx={{
+              mb: 4,
+              color: 'text.secondary',
+              textAlign: 'center',
+            }}
+          >
+            Join your friends, IRL!
           </Typography>
-          
+
+          {/* Error message */}
           {error && (
-            <Typography color="error" sx={{ mb: 2 }}>
+            <Typography
+              color="error"
+              sx={{
+                mb: 2,
+                textAlign: 'center',
+                fontSize: '0.875rem',
+              }}
+            >
               {error}
             </Typography>
           )}
 
+          {/* Google Sign In Button */}
           <Button
             variant="contained"
-            color="primary"
             size="large"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            startIcon={isLoading ? <CircularProgress size={20} /> : <GoogleIcon />}
+            startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <GoogleIcon />}
             fullWidth
             sx={{
-              backgroundColor: '#4285F4',
+              py: 1.5,
+              backgroundColor: '#FFFFFF',
+              color: '#3C4043',
+              border: '1px solid #DADCE0',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
               '&:hover': {
-                backgroundColor: '#357ABD',
+                backgroundColor: '#F8F9FA',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+                transform: 'translateY(-1px)',
+              },
+              '& .MuiButton-startIcon': {
+                mr: 1.5,
               },
             }}
           >
-            {isLoading ? 'Signing in...' : 'Sign in with Google'}
+            {isLoading ? 'Signing in...' : 'Continue with Google'}
           </Button>
+
+          {/* Footer text */}
+          <Typography
+            variant="caption"
+            sx={{
+              mt: 3,
+              color: 'text.disabled',
+              textAlign: 'center',
+            }}
+          >
+            Plan activities with your friends
+          </Typography>
         </Paper>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 }
 

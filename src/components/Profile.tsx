@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Button, Paper, IconButton, Alert } from '@mui/material';
+import { Box, Typography, TextField, Button, Paper, IconButton, Alert, Collapse } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { auth, db } from '../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import ConnectionsList from './ConnectionsList';
@@ -26,6 +28,10 @@ function Profile() {
   const [username, setUsername] = useState('');             // Stores current username
   const [loading, setLoading] = useState(true);            // Tracks initial data loading
   const [error, setError] = useState<string | null>(null); // Stores error messages
+  const [connectionsExpanded, setConnectionsExpanded] = useState(false);  // Controls connections card collapse
+  const [pastActivitiesExpanded, setPastActivitiesExpanded] = useState(false); // Controls past activities card collapse
+  const [connectionsCount, setConnectionsCount] = useState(0);  // Connections count for header
+  const [pastActivitiesCount, setPastActivitiesCount] = useState(0); // Past activities count for header
 
   /**
    * Effect Hook: Fetch Username
@@ -84,58 +90,70 @@ function Profile() {
   }
 
   return (
-    <Box sx={{ p: 2, pb: 10 }}>
+    <Box sx={{ p: 2, pb: 12 }}>
       {/* Profile Information Card */}
-      <Paper sx={{ p: 2, mb: 4 }}>
-        <Box sx={{ mb: 1 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          mb: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Box sx={{ mb: 2 }}>
           {/* Error Alert - Shows any error messages */}
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
-          
+
           {/* Username Edit Form */}
           {isEditing ? (
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', flexWrap: 'wrap' }}>
               <TextField
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
-                  setError(null); // Clear any previous errors
+                  setError(null);
                 }}
                 placeholder="Enter username"
                 size="small"
-                fullWidth
+                sx={{ flex: 1, minWidth: 200 }}
                 autoFocus
               />
-              <Button
-                variant="contained"
-                onClick={handleSaveUsername}
-                disabled={!username.trim()} // Disable if username is empty
-              >
-                Save
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  setIsEditing(false);
-                  setError(null);
-                }}
-              >
-                Cancel
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  onClick={handleSaveUsername}
+                  disabled={!username.trim()}
+                  size="small"
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setError(null);
+                  }}
+                  size="small"
+                >
+                  Cancel
+                </Button>
+              </Box>
             </Box>
           ) : (
             /* Username Display with Edit Button */
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Typography variant="h6">
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>
                 {username || 'Add Username'}
               </Typography>
               <IconButton
                 size="small"
                 onClick={() => setIsEditing(true)}
-                sx={{ ml: 1 }}
+                color="primary"
               >
                 <EditIcon fontSize="small" />
               </IconButton>
@@ -144,21 +162,60 @@ function Profile() {
         </Box>
 
         {/* User Email Display */}
-        <Typography variant="body1" color="textSecondary">
+        <Typography variant="body2" color="text.secondary">
           {auth.currentUser?.email}
         </Typography>
       </Paper>
 
       {/* Connections List Component */}
-      <Paper sx={{ p: 2, mb: 4 }}>
-        <ConnectionsList />
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          mb: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: connectionsExpanded ? 1 : 0 }}>
+          <Typography variant="h6">Connections ({connectionsCount})</Typography>
+          <IconButton
+            size="small"
+            onClick={() => setConnectionsExpanded(!connectionsExpanded)}
+            aria-label={connectionsExpanded ? 'Collapse connections' : 'Expand connections'}
+          >
+            {connectionsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+        </Box>
+        <Collapse in={connectionsExpanded}>
+          <ConnectionsList hideHeader onCountChange={setConnectionsCount} />
+        </Collapse>
       </Paper>
 
       {/* Past Activities Component */}
-      <Paper sx={{ p: 2 }}>
-        <PastActivities />
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: pastActivitiesExpanded ? 1 : 0 }}>
+          <Typography variant="h6">Past Activities ({pastActivitiesCount})</Typography>
+          <IconButton
+            size="small"
+            onClick={() => setPastActivitiesExpanded(!pastActivitiesExpanded)}
+            aria-label={pastActivitiesExpanded ? 'Collapse past activities' : 'Expand past activities'}
+          >
+            {pastActivitiesExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+        </Box>
+        <Collapse in={pastActivitiesExpanded}>
+          <PastActivities hideHeader onCountChange={setPastActivitiesCount} />
+        </Collapse>
       </Paper>
-    </Box>
+    </Box >
   );
 }
 

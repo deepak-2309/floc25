@@ -18,7 +18,12 @@ import { Activity } from './ActivityCard';
  * - Loading state with spinner
  * - Error handling with alert messages
  */
-const PastActivities: React.FC = () => {
+interface PastActivitiesProps {
+  hideHeader?: boolean;
+  onCountChange?: (count: number) => void;
+}
+
+const PastActivities: React.FC<PastActivitiesProps> = ({ hideHeader = false, onCountChange }) => {
   // State Management
   const [activities, setActivities] = useState<Activity[]>([]); // Stores the list of past activities
   const [isLoading, setIsLoading] = useState(true);            // Controls loading state
@@ -39,6 +44,7 @@ const PastActivities: React.FC = () => {
       setError(null);
       const fetchedActivities = await fetchPastActivities();
       setActivities(fetchedActivities);
+      onCountChange?.(fetchedActivities.length);
     } catch (error) {
       console.error('Error fetching past activities:', error);
       if (error instanceof Error) {
@@ -70,9 +76,11 @@ const PastActivities: React.FC = () => {
       )}
 
       {/* Section Header with Activity Count */}
-      <Typography variant="h6" gutterBottom>
-        Past Activities ({activities.length})
-      </Typography>
+      {!hideHeader && (
+        <Typography variant="h6" gutterBottom>
+          Past Activities ({activities.length})
+        </Typography>
+      )}
 
       {/* Conditional Content Rendering */}
       {activities.length === 0 ? (
