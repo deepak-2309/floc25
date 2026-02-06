@@ -187,21 +187,17 @@ function App() {
         <BottomNavigation
           value={location.pathname}
           onChange={(_, path) => navigate(path)}
-          showLabels
           sx={{ position: 'sticky', bottom: 0, zIndex: 1100 }}
         >
           <BottomNavigationAction
-            label="Going"
             icon={<CalendarMonthIcon />}
             value={ROUTES.MY_ACTIVITIES}
           />
           <BottomNavigationAction
-            label="Friends"
             icon={<BakeryDiningIcon />}
             value={ROUTES.FRIENDS}
           />
           <BottomNavigationAction
-            label="Profile"
             icon={<PersonIcon />}
             value={ROUTES.PROFILE}
           />
