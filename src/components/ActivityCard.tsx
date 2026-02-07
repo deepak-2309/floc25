@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, Typography, IconButton, Box, Button, Chip, alpha } from '@mui/material';
+import { Card, CardContent, Typography, IconButton, Box, Button, Chip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import GroupIcon from '@mui/icons-material/Group';
 import LockIcon from '@mui/icons-material/Lock';
@@ -108,7 +108,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   };
 
   return (
-    <Card sx={{ mb: 2, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) }}>
+    <Card sx={{ mb: 2 }}>
       <CardContent>
         {/* Header section with activity name and action buttons */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
