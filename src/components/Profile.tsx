@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, TextField, Button, Paper, IconButton, Alert, Collapse } from '@mui/material';
+import { Box, Typography, TextField, Button, Paper, IconButton, Alert } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { auth, db } from '../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import ConnectionsList from './ConnectionsList';
@@ -30,8 +28,6 @@ function Profile() {
   const [username, setUsername] = useState('');             // Stores current username
   const [loading, setLoading] = useState(true);            // Tracks initial data loading
   const [error, setError] = useState<string | null>(null); // Stores error messages
-  const [connectionsExpanded, setConnectionsExpanded] = useState(false);  // Controls connections card collapse
-  const [pastActivitiesExpanded, setPastActivitiesExpanded] = useState(false); // Controls past activities card collapse
   const [connectionsCount, setConnectionsCount] = useState(0);  // Connections count for header
   const [pastActivitiesCount, setPastActivitiesCount] = useState(0); // Past activities count for header
   const [viewingUserId, setViewingUserId] = useState<string | null>(null); // When viewing another user's profile

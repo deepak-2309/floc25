@@ -20,7 +20,6 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { addConnection, fetchUserConnections, removeConnection, fetchUserConnectionsList } from '../firebase/userActions';
 import { getSafeDate } from '../utils/dateUtils';
 
