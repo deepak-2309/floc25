@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -52,10 +52,28 @@ const SquashBallIcon: React.FC = () => (
  */
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
+    const carouselRef = useRef<HTMLDivElement>(null);
 
     const handleGetStarted = () => {
         navigate('/login');
     };
+
+    // Check if mobile viewport
+    const isMobile = () => window.innerWidth < 600;
+
+    // Scroll to center card on mount (mobile only)
+    useEffect(() => {
+        if (carouselRef.current && isMobile()) {
+            const container = carouselRef.current;
+            const cards = container.children;
+            if (cards.length >= 3) {
+                // Scroll to center card (index 1 = Ultimate Frisbee)
+                const centerCard = cards[1] as HTMLElement;
+                const scrollPosition = centerCard.offsetLeft - (container.offsetWidth - centerCard.offsetWidth) / 2;
+                container.scrollLeft = scrollPosition;
+            }
+        }
+    }, []);
 
     // Feature cards data
     const features = [
@@ -158,17 +176,27 @@ const LandingPage: React.FC = () => {
                     </Typography>
 
                     {/* Example Activity Cards */}
-                    <Box sx={{
-                        display: 'flex',
-                        flexDirection: { xs: 'column', sm: 'row' },
-                        gap: 3,
-                        mb: 8,
-                        maxWidth: 960,
-                        mx: 'auto',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        px: 2,
-                    }}>
+                    <Box
+                        ref={carouselRef}
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            gap: 3,
+                            mb: 8,
+                            maxWidth: { xs: '100%', sm: 960 },
+                            mx: 'auto',
+                            alignItems: { xs: 'stretch', sm: 'center' },
+                            justifyContent: { xs: 'flex-start', sm: 'center' },
+                            px: { xs: 3, sm: 2 },
+                            // Mobile: horizontal scroll carousel with snap
+                            overflowX: { xs: 'auto', sm: 'visible' },
+                            scrollSnapType: { xs: 'x mandatory', sm: 'none' },
+                            WebkitOverflowScrolling: 'touch',
+                            // Hide scrollbar
+                            '&::-webkit-scrollbar': { display: 'none' },
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                        }}>
                         {/* Squash Card - Tuesday */}
                         <Paper
                             elevation={0}
@@ -179,9 +207,11 @@ const LandingPage: React.FC = () => {
                                 backdropFilter: 'blur(10px)',
                                 textAlign: 'left',
                                 transition: 'transform 0.2s ease',
-                                width: { xs: '100%', sm: 'auto' },
-                                maxWidth: { xs: '100%', sm: 280 },
-                                flex: { sm: 1 },
+                                // Mobile: 85% width for peek effect, Desktop: auto
+                                flex: { xs: '0 0 85%', sm: 1 },
+                                minWidth: { xs: '85%', sm: 'auto' },
+                                maxWidth: { xs: '85%', sm: 280 },
+                                scrollSnapAlign: { xs: 'center', sm: 'unset' },
                                 '&:hover': {
                                     transform: 'translateY(-4px)',
                                 },
@@ -223,10 +253,12 @@ const LandingPage: React.FC = () => {
                                 backdropFilter: 'blur(10px)',
                                 textAlign: 'left',
                                 transition: 'transform 0.2s ease',
-                                width: { xs: '100%', sm: 'auto' },
-                                maxWidth: { xs: '100%', sm: 280 },
-                                flex: { sm: 1 },
-                                transform: { sm: 'translateY(-24px)' }, // Stagger effect
+                                // Mobile: 85% width for peek effect, Desktop: auto
+                                flex: { xs: '0 0 85%', sm: 1 },
+                                minWidth: { xs: '85%', sm: 'auto' },
+                                maxWidth: { xs: '85%', sm: 280 },
+                                scrollSnapAlign: { xs: 'center', sm: 'unset' },
+                                transform: { xs: 'none', sm: 'translateY(-24px)' }, // Stagger effect only on desktop
                                 '&:hover': {
                                     transform: { xs: 'translateY(-4px)', sm: 'translateY(-28px)' },
                                 },
@@ -268,9 +300,11 @@ const LandingPage: React.FC = () => {
                                 backdropFilter: 'blur(10px)',
                                 textAlign: 'left',
                                 transition: 'transform 0.2s ease',
-                                width: { xs: '100%', sm: 'auto' },
-                                maxWidth: { xs: '100%', sm: 280 },
-                                flex: { sm: 1 },
+                                // Mobile: 85% width for peek effect, Desktop: auto
+                                flex: { xs: '0 0 85%', sm: 1 },
+                                minWidth: { xs: '85%', sm: 'auto' },
+                                maxWidth: { xs: '85%', sm: 280 },
+                                scrollSnapAlign: { xs: 'center', sm: 'unset' },
                                 '&:hover': {
                                     transform: 'translateY(-4px)',
                                 },
@@ -313,15 +347,15 @@ const LandingPage: React.FC = () => {
                             py: 2,
                             fontSize: '1.1rem',
                             fontWeight: 600,
-                            backgroundColor: '#F97316',
+                            backgroundColor: '#FB923C',
                             color: 'white',
                             borderRadius: 3,
-                            boxShadow: '0 4px 20px rgba(249, 115, 22, 0.4)',
+                            boxShadow: '0 4px 20px rgba(251, 146, 60, 0.4)',
                             transition: 'all 0.3s ease',
                             '&:hover': {
-                                backgroundColor: '#EA580C',
+                                backgroundColor: '#F97316',
                                 transform: 'translateY(-3px)',
-                                boxShadow: '0 8px 30px rgba(249, 115, 22, 0.5)',
+                                boxShadow: '0 8px 30px rgba(251, 146, 60, 0.5)',
                             },
                         }}
                     >
