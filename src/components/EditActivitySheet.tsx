@@ -126,7 +126,38 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
           </IconButton>
         </Box>
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* Shared form styling for consistent label/placeholder behavior */}
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            // Consistent placeholder styling across all fields
+            '& .MuiInputBase-input::placeholder': {
+              color: 'text.secondary',
+              opacity: 0.7,
+            },
+            // Hide datetime native format when empty, show placeholder instead
+            '& input[type="datetime-local"]': {
+              '&::-webkit-datetime-edit': {
+                visibility: 'hidden',
+              },
+              '&::-webkit-datetime-edit-fields-wrapper': {
+                visibility: 'hidden',
+              },
+            },
+            '& input[type="datetime-local"][value]:not([value=""])': {
+              '&::-webkit-datetime-edit': {
+                visibility: 'visible',
+              },
+              '&::-webkit-datetime-edit-fields-wrapper': {
+                visibility: 'visible',
+              },
+            },
+          }}
+        >
           <TextField
             required
             fullWidth
@@ -152,8 +183,12 @@ const EditActivitySheet: React.FC<EditActivitySheetProps> = ({
             type="datetime-local"
             value={selectedDateTime}
             onChange={(e) => setSelectedDateTime(e.target.value)}
+            placeholder="Pick date and time"
             InputLabelProps={{
-              shrink: true,
+              shrink: !!selectedDateTime,
+            }}
+            inputProps={{
+              style: { cursor: 'pointer' },
             }}
           />
 

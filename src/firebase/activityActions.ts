@@ -263,6 +263,15 @@ export const updateActivity = async (activity: Activity) => {
       description: activity.description,
       dateTime: activity.dateTime.toISOString(),
       isPrivate: activity.isPrivate || false,
+      isPaid: activity.isPaid || false,
+      ...(activity.isPaid && {
+        cost: activity.cost,
+        currency: activity.currency || 'INR',
+      }),
+      ...(!activity.isPaid && {
+        cost: null,
+        currency: null,
+      }),
     });
 
     console.log('Activity updated successfully');

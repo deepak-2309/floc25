@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, Typography, IconButton, Box, Button, Tooltip, Chip } from '@mui/material';
+import { Card, CardContent, Typography, IconButton, Box, Button, Chip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import GroupIcon from '@mui/icons-material/Group';
 import LockIcon from '@mui/icons-material/Lock';
@@ -98,13 +98,8 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
 
   const userPaymentStatus = getCurrentUserPaymentStatus();
 
-  // Get number of joiners and format joiner names for tooltip
+  // Get number of joiners
   const joinersCount = activity.joiners ? Object.keys(activity.joiners).length : 0;
-  const joinersList = activity.joiners 
-    ? Object.values(activity.joiners)
-      .map(joiner => joiner.username || joiner.email)
-      .join(', ')
-    : '';
 
   const [tooltipOpen, setTooltipOpen] = useState(false);
 
@@ -152,12 +147,12 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
                 variant={isJoined ? "outlined" : "contained"}
                 onClick={onJoinToggle}
                 size="small"
-                sx={{ mr: 1 }}
+                sx={{ mt: -1, mr: -1 }}
                 disabled={activity.isPaid && userPaymentStatus === 'pending'}
                 startIcon={activity.isPaid && !isJoined ? <PaymentIcon /> : undefined}
               >
-                {isJoined ? 'Leave' : 
-                 activity.isPaid ? `Pay ₹${formatCost(activity.cost || 0)}` : 'Join'}
+                {isJoined ? 'Leave' :
+                  activity.isPaid ? `Pay ₹${formatCost(activity.cost || 0)}` : 'Join'}
               </Button>
             )}
             {onEdit && isCreator && (
@@ -171,21 +166,44 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
             )}
           </Box>
         </Box>
-        
+
         {/* Footer section with creator name and joiners count */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
           <Typography color="textSecondary" variant="body2">
             by {activity.createdBy}
           </Typography>
-          <Tooltip title={joinersList} placement="top" open={tooltipOpen} onClose={() => setTooltipOpen(false)}>
-            <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={handleTooltipToggle}>
-              <GroupIcon sx={{ mr: 0.5 }} />
-              <Typography variant="body2">
-                {joinersCount}
-              </Typography>
-            </Box>
-          </Tooltip>
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+            onClick={handleTooltipToggle}
+          >
+            <GroupIcon sx={{ mr: 0.5 }} />
+            <Typography variant="body2">
+              {joinersCount}
+            </Typography>
+          </Box>
         </Box>
+
+        {/* Expandable joiners list */}
+        {tooltipOpen && joinersCount > 0 && (
+          <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+              Joined:
+            </Typography>
+            {Object.entries(activity.joiners || {})
+              .sort((a, b) => new Date(a[1].joinedAt).getTime() - new Date(b[1].joinedAt).getTime())
+              .map(([, joiner], index) => (
+                <Box key={index} sx={{ display: 'flex', pl: 1 }}>
+                  <Typography variant="body2" sx={{ minWidth: 24, textAlign: 'right', mr: 0.5 }}>
+                    {index + 1}.
+                  </Typography>
+                  <Typography variant="body2">
+                    {joiner.username || joiner.email}
+                  </Typography>
+                </Box>
+              ))
+            }
+          </Box>
+        )}
       </CardContent>
     </Card>
   );
