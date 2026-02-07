@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, TextField, Button, Paper, IconButton, Alert, Collapse } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -6,8 +6,10 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { auth, db } from '../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import ConnectionsList from './ConnectionsList';
+import UserProfile from './UserProfile';
 import { updateUsername } from '../firebase/userActions';
 import PastActivities from './PastActivities';
+import CollapsibleSection from './CollapsibleSection';
 
 /**
  * Profile Component
@@ -32,6 +34,17 @@ function Profile() {
   const [pastActivitiesExpanded, setPastActivitiesExpanded] = useState(false); // Controls past activities card collapse
   const [connectionsCount, setConnectionsCount] = useState(0);  // Connections count for header
   const [pastActivitiesCount, setPastActivitiesCount] = useState(0); // Past activities count for header
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null); // When viewing another user's profile
+
+  // Handler for clicking on a connection's username
+  const handleUserClick = useCallback((userId: string) => {
+    setViewingUserId(userId);
+  }, []);
+
+  // Handler to go back from viewing another user's profile
+  const handleBackFromProfile = useCallback(() => {
+    setViewingUserId(null);
+  }, []);
 
   /**
    * Effect Hook: Fetch Username
@@ -87,6 +100,11 @@ function Profile() {
         <Typography>Loading...</Typography>
       </Box>
     );
+  }
+
+  // If viewing another user's profile, show UserProfile component
+  if (viewingUserId) {
+    return <UserProfile userId={viewingUserId} onBack={handleBackFromProfile} />;
   }
 
   return (
@@ -168,53 +186,18 @@ function Profile() {
       </Paper>
 
       {/* Connections List Component */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 3,
-          mb: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: connectionsExpanded ? 1 : 0 }}>
-          <Typography variant="h6">Connections ({connectionsCount})</Typography>
-          <IconButton
-            size="small"
-            onClick={() => setConnectionsExpanded(!connectionsExpanded)}
-            aria-label={connectionsExpanded ? 'Collapse connections' : 'Expand connections'}
-          >
-            {connectionsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </IconButton>
-        </Box>
-        <Collapse in={connectionsExpanded}>
-          <ConnectionsList hideHeader onCountChange={setConnectionsCount} />
-        </Collapse>
-      </Paper>
+      <CollapsibleSection title="Connections" count={connectionsCount}>
+        <ConnectionsList
+          hideHeader
+          onCountChange={setConnectionsCount}
+          onUserClick={handleUserClick}
+        />
+      </CollapsibleSection>
 
       {/* Past Activities Component */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: pastActivitiesExpanded ? 1 : 0 }}>
-          <Typography variant="h6">Past Activities ({pastActivitiesCount})</Typography>
-          <IconButton
-            size="small"
-            onClick={() => setPastActivitiesExpanded(!pastActivitiesExpanded)}
-            aria-label={pastActivitiesExpanded ? 'Collapse past activities' : 'Expand past activities'}
-          >
-            {pastActivitiesExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </IconButton>
-        </Box>
-        <Collapse in={pastActivitiesExpanded}>
-          <PastActivities hideHeader onCountChange={setPastActivitiesCount} />
-        </Collapse>
-      </Paper>
+      <CollapsibleSection title="Past Activities" count={pastActivitiesCount}>
+        <PastActivities hideHeader onCountChange={setPastActivitiesCount} />
+      </CollapsibleSection>
     </Box >
   );
 }

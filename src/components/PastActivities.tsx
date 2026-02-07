@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, CircularProgress, Alert } from '@mui/material';
-import PastActivityCard from './PastActivityCard';
-import { fetchPastActivities } from '../firebase/activityActions';
-import { Activity } from './ActivityCard';
+import ActivityCard, { Activity } from './ActivityCard';
+import { fetchUserProfileActivities } from '../firebase/activityActions';
+import { auth } from '../firebase/config';
 
 /**
  * PastActivities Component
@@ -21,9 +21,10 @@ import { Activity } from './ActivityCard';
 interface PastActivitiesProps {
   hideHeader?: boolean;
   onCountChange?: (count: number) => void;
+  userId?: string; // Optional user ID to view specific user's past activities
 }
 
-const PastActivities: React.FC<PastActivitiesProps> = ({ hideHeader = false, onCountChange }) => {
+const PastActivities: React.FC<PastActivitiesProps> = ({ hideHeader = false, onCountChange, userId }) => {
   // State Management
   const [activities, setActivities] = useState<Activity[]>([]); // Stores the list of past activities
   const [isLoading, setIsLoading] = useState(true);            // Controls loading state
@@ -33,7 +34,7 @@ const PastActivities: React.FC<PastActivitiesProps> = ({ hideHeader = false, onC
   useEffect(() => {
     loadActivities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId]);
 
   /**
    * Fetches past activities from Firebase
@@ -43,7 +44,18 @@ const PastActivities: React.FC<PastActivitiesProps> = ({ hideHeader = false, onC
     try {
       setIsLoading(true);
       setError(null);
-      const fetchedActivities = await fetchPastActivities();
+
+      const targetUserId = userId || auth.currentUser?.uid;
+
+      if (!targetUserId) {
+        setActivities([]);
+        onCountChange?.(0);
+        setIsLoading(false);
+        return;
+      }
+
+      const fetchedActivities = await fetchUserProfileActivities(targetUserId);
+
       setActivities(fetchedActivities);
       onCountChange?.(fetchedActivities.length);
     } catch (error) {
@@ -91,9 +103,13 @@ const PastActivities: React.FC<PastActivitiesProps> = ({ hideHeader = false, onC
         </Typography>
       ) : (
         // List of Past Activities
-        <Box sx={{ mt: 2 }}>
+        <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
           {activities.map((activity) => (
-            <PastActivityCard key={activity.id} activity={activity} />
+            <ActivityCard
+              key={activity.id}
+              activity={activity}
+              isJoined={true}
+            />
           ))}
         </Box>
       )}
@@ -101,4 +117,4 @@ const PastActivities: React.FC<PastActivitiesProps> = ({ hideHeader = false, onC
   );
 };
 
-export default PastActivities; 
+export default PastActivities;

@@ -168,4 +168,84 @@ export const removeConnection = async (targetUserId: string) => {
     console.error('Error removing connection:', error);
     throw error;
   }
+};
+
+/**
+ * Fetches another user's profile data
+ * @param userId The ID of the user to fetch
+ * @returns User profile data (username, email)
+ * @throws Error if user not found
+ */
+export const fetchUserProfile = async (userId: string) => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
+    const userData = userDoc.data();
+    return {
+      id: userId,
+      username: userData.username || null,
+      email: userData.email || null,
+    };
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches another user's connections list
+ * Also determines which connections are mutual with the current user
+ * @param userId The ID of the user whose connections to fetch
+ * @returns Array of connections with mutual status and self-identification
+ */
+export const fetchUserConnectionsList = async (userId: string) => {
+  const currentUser = getCurrentUserOrThrow();
+  const currentUserData = await getCurrentUserData();
+  const myConnections = currentUserData?.connections || {};
+
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
+    const userData = userDoc.data();
+    const theirConnections = userData.connections || {};
+
+    // Map connections with mutual status and self-identification
+    const connectionsList = Object.entries(theirConnections as UserConnections).map(([connId, connection]) => {
+      const isCurrentUser = connId === currentUser.uid;
+      const isMutual = isCurrentUser || !!myConnections[connId]; // Current user counts as mutual (no Add button needed)
+
+      return {
+        id: connId,
+        userId: connId,
+        email: connection.email,
+        username: connection.username,
+        connectedAt: connection.connectedAt,
+        isMutual,
+        isCurrentUser, // Flag to identify if this is the current user
+      };
+    });
+
+    // Sort: mutual connections first, then alphabetically by username/email
+    connectionsList.sort((a, b) => {
+      if (a.isMutual !== b.isMutual) {
+        return a.isMutual ? -1 : 1; // Mutual first
+      }
+      const nameA = (a.username || a.email || '').toLowerCase();
+      const nameB = (b.username || b.email || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
+    return connectionsList;
+  } catch (error) {
+    console.error('Error fetching user connections:', error);
+    throw error;
+  }
 }; 

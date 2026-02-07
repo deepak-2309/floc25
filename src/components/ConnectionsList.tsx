@@ -16,21 +16,26 @@ import {
   Alert,
   Snackbar,
   ListItemSecondaryAction,
+  Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { addConnection, fetchUserConnections, removeConnection } from '../firebase/userActions';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import { addConnection, fetchUserConnections, removeConnection, fetchUserConnectionsList } from '../firebase/userActions';
+import { getSafeDate } from '../utils/dateUtils';
 
 /**
  * Interface representing a user connection in the application.
  * Contains all necessary information about a single connection.
  */
-interface Connection {
+export interface Connection {
   id: string;          // Unique identifier for the connection
   userId: string;      // ID of the connected user
   email: string | null;    // Email address of the connected user
   username: string | null; // Username of the connected user (if set)
   connectedAt: any;    // Timestamp when the connection was established
+  isMutual?: boolean;  // Whether this is a mutual connection (for other's profile view)
+  isCurrentUser?: boolean; // Whether this connection is the current logged-in user
 }
 
 /**
@@ -39,13 +44,25 @@ interface Connection {
  * Displays a list of user connections and provides functionality to add new connections.
  * Shows either username or email for each connection, with username taking precedence if available.
  * Includes an "Add Connection" button that opens a dialog for entering a new connection's email.
+ * 
+ * When viewing another user's connections (viewingUserId is set):
+ * - Usernames are NOT tappable
+ * - Shows "Mutual" badge for mutual connections
+ * - Shows "Add" button for non-mutual connections
  */
 interface ConnectionsListProps {
   hideHeader?: boolean;
   onCountChange?: (count: number) => void;
+  onUserClick?: (userId: string) => void;  // Callback when a username is clicked (my profile only)
+  viewingUserId?: string;  // If set, viewing another user's connections (not my own)
 }
 
-const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, onCountChange }) => {
+const ConnectionsList: React.FC<ConnectionsListProps> = ({
+  hideHeader = false,
+  onCountChange,
+  onUserClick,
+  viewingUserId
+}) => {
   // State management for connections and UI states
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,31 +73,47 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, o
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [connectionToDelete, setConnectionToDelete] = useState<Connection | null>(null);
+  const [addingConnectionId, setAddingConnectionId] = useState<string | null>(null); // Track which connection is being added
 
-  // Load connections when component mounts
+  // Determine if viewing another user's connections
+  const isViewingOther = !!viewingUserId;
+
+  // Load connections when component mounts or viewingUserId changes
   useEffect(() => {
     loadConnections();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [viewingUserId]);
 
-  // Add a refresh interval to keep connections up to date
+  // Add a refresh interval to keep connections up to date (only for own connections)
   useEffect(() => {
+    if (isViewingOther) return; // Don't auto-refresh for other users
+
     // Refresh connections every 10 seconds
     const intervalId = setInterval(loadConnections, 10000);
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isViewingOther]);
 
   /**
-   * Fetches the user's connections from Firebase
-   * Updates the connections state and handles loading/error states
+   * Fetches connections from Firebase
+   * If viewingUserId is set, fetches that user's connections with mutual status
+   * Otherwise fetches current user's connections
    */
   const loadConnections = async () => {
     try {
       setError(null);
-      const fetchedConnections = await fetchUserConnections();
+      let fetchedConnections: Connection[];
+
+      if (viewingUserId) {
+        // Fetch another user's connections with mutual status
+        fetchedConnections = await fetchUserConnectionsList(viewingUserId);
+      } else {
+        // Fetch own connections
+        fetchedConnections = await fetchUserConnections();
+      }
+
       console.log('Fetched connections:', fetchedConnections);
       setConnections(fetchedConnections);
       onCountChange?.(fetchedConnections.length);
@@ -146,14 +179,9 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, o
   const formatConnectionDate = (timestamp: any) => {
     if (!timestamp) return '';
 
-    let date;
-    if (typeof timestamp === 'string') {
-      date = new Date(timestamp);
-    } else if (timestamp.toDate) {
-      date = timestamp.toDate();
-    } else {
-      return '';
-    }
+    const date = getSafeDate(timestamp);
+
+    if (!date) return '';
 
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -163,20 +191,8 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, o
   };
 
   /**
-   * Gets a Date object from either a Firebase timestamp or ISO string
-   * @param timestamp Firebase timestamp or ISO string
-   * @returns Date object or null
+   * (Removed getDateFromTimestamp helper as it's replaced by getSafeDate)
    */
-  const getDateFromTimestamp = (timestamp: any): Date | null => {
-    if (!timestamp) return null;
-
-    if (typeof timestamp === 'string') {
-      return new Date(timestamp);
-    } else if (timestamp.toDate) {
-      return timestamp.toDate();
-    }
-    return null;
-  };
 
   /**
    * Opens the delete confirmation dialog
@@ -232,7 +248,7 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, o
           </IconButton>
         </Box>
       )}
-      {hideHeader && (
+      {hideHeader && !isViewingOther && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
           <Button
             color="primary"
@@ -278,8 +294,12 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, o
           <List dense>
             {connections
               .sort((a, b) => {
-                const dateA = getDateFromTimestamp(a.connectedAt);
-                const dateB = getDateFromTimestamp(b.connectedAt);
+                // When viewing other's connections, they're already sorted by mutual first
+                if (isViewingOther) return 0;
+
+                // For own connections, sort by date (newest first)
+                const dateA = getSafeDate(a.connectedAt);
+                const dateB = getSafeDate(b.connectedAt);
                 if (!dateA || !dateB) return 0;
                 return dateB.getTime() - dateA.getTime();
               })
@@ -291,15 +311,31 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, o
                     minHeight: '48px'
                   }}
                 >
-                  {/* Connection details with inline date */}
+                  {/* Connection details with inline date/badge */}
                   <ListItemText
                     primary={
                       <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="subtitle1" component="span">
-                          {connection.username || connection.email}
-                        </Typography>
-                        {/* Connection date in compact format */}
-                        {connection.connectedAt && (
+                        {/* Username - tappable only when viewing own connections */}
+                        {!isViewingOther && onUserClick ? (
+                          <Typography
+                            variant="subtitle1"
+                            component="span"
+                            onClick={() => onUserClick(connection.userId)}
+                            sx={{
+                              cursor: 'pointer',
+                              '&:hover': { textDecoration: 'underline' }
+                            }}
+                          >
+                            {connection.username || connection.email}
+                          </Typography>
+                        ) : (
+                          <Typography variant="subtitle1" component="span">
+                            {connection.username || connection.email}
+                          </Typography>
+                        )}
+
+                        {/* Connection date in compact format (only for own connections) */}
+                        {!isViewingOther && connection.connectedAt && (
                           <Typography component="span" variant="body2" color="text.secondary">
                             {formatConnectionDate(connection.connectedAt)}
                           </Typography>
@@ -307,16 +343,68 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ hideHeader = false, o
                       </Box>
                     }
                   />
-                  {/* Delete connection button */}
+
                   <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      aria-label="remove connection"
-                      onClick={() => openDeleteDialog(connection)}
-                      size="small"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                    {/* For own connections: Delete button */}
+                    {!isViewingOther && (
+                      <IconButton
+                        edge="end"
+                        aria-label="remove connection"
+                        onClick={() => openDeleteDialog(connection)}
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    )}
+
+                    {/* For other's connections: Show badges and add button (right-aligned) */}
+                    {isViewingOther && connection.isCurrentUser && (
+                      <Chip
+                        label="You"
+                        size="small"
+                        color="default"
+                        variant="filled"
+                        sx={{ height: 20, fontSize: '0.7rem', minWidth: 55 }}
+                      />
+                    )}
+                    {isViewingOther && connection.isMutual && !connection.isCurrentUser && (
+                      <Chip
+                        label="Mutual"
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        sx={{ height: 20, fontSize: '0.7rem', minWidth: 55 }}
+                      />
+                    )}
+                    {isViewingOther && !connection.isMutual && (
+                      <Chip
+                        label={addingConnectionId === connection.userId ? "Adding..." : "Add"}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        disabled={addingConnectionId === connection.userId}
+                        onClick={async () => {
+                          if (!connection.email) return;
+                          setAddingConnectionId(connection.userId);
+                          try {
+                            await addConnection(connection.email);
+                            setSuccessMessage(`Connected with ${connection.username || connection.email}`);
+                            await loadConnections(); // Refresh to update mutual status
+                          } catch (err: any) {
+                            setError(err.message || 'Failed to add connection');
+                          } finally {
+                            setAddingConnectionId(null);
+                          }
+                        }}
+                        sx={{
+                          height: 20,
+                          fontSize: '0.7rem',
+                          minWidth: 55,
+                          cursor: 'pointer',
+                          '&:hover': { backgroundColor: 'primary.light', color: 'primary.contrastText' }
+                        }}
+                      />
+                    )}
                   </ListItemSecondaryAction>
                 </ListItem>
               ))}

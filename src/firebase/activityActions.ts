@@ -3,6 +3,7 @@ import { db, auth } from './config';
 import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils';
 import { Activity } from '../components/ActivityCard'; // Assuming ActivityCard is one level up
 import { initiatePayment, hasUserPaid } from './paymentService';
+import { getSafeDate } from '../utils/dateUtils';
 
 /**
  * Creates a new activity in Firestore
@@ -424,64 +425,7 @@ export const hasUserJoined = (activity: Activity): boolean => {
   return !!activity.joiners[currentUser.uid];
 };
 
-/**
- * Fetches past activities for the current user (both created and joined)
- * @returns Array of past activities
- * @throws Error if user is not authenticated
- */
-export const fetchPastActivities = async () => {
-  const currentUser = getCurrentUserOrThrow();
-
-  try {
-    const activitiesRef = collection(db, 'activities');
-    const createdActivitiesQuery = query(
-      activitiesRef,
-      where('userId', '==', currentUser.uid)
-    );
-    const createdActivitiesSnapshot = await getDocs(createdActivitiesQuery);
-
-    const joinedActivitiesQuery = query(
-      activitiesRef,
-      where(`joiners.${currentUser.uid}`, '!=', null)
-    );
-    const joinedActivitiesSnapshot = await getDocs(joinedActivitiesQuery);
-
-    const activitiesMap = new Map();
-    const now = new Date();
-
-    // Process created activities
-    createdActivitiesSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      const activityDate = new Date(data.dateTime);
-      if (activityDate < now) {
-        activitiesMap.set(doc.id, {
-          id: doc.id,
-          ...data,
-          dateTime: activityDate
-        });
-      }
-    });
-
-    // Process joined activities
-    joinedActivitiesSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      const activityDate = new Date(data.dateTime);
-      if (activityDate < now && !activitiesMap.has(doc.id)) {
-        activitiesMap.set(doc.id, {
-          id: doc.id,
-          ...data,
-          dateTime: activityDate
-        });
-      }
-    });
-
-    return Array.from(activitiesMap.values())
-      .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime()); // Sort by most recent first
-  } catch (error) {
-    console.error('Error fetching past activities:', error);
-    throw error;
-  }
-};
+// fetchPastActivities removed - use fetchUserProfileActivities instead
 
 /**
  * Fetches an activity by its ID
@@ -507,10 +451,80 @@ export const fetchActivityById = async (activityId: string) => {
     return {
       id: activityId,
       ...data,
-      dateTime: new Date(data.dateTime)
+      dateTime: getSafeDate(data.dateTime) || new Date()
     } as Activity;
   } catch (error) {
     console.error('Error fetching activity by ID:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches activities for a user profile (created or joined)
+ * Filters for visibility:
+ * - Public activities (!isPrivate)
+ * - Private activities where current viewer is a participant
+ * @param profileUserId The ID of the user whose profile is being viewed
+ * @returns Array of visible activities
+ */
+export const fetchUserProfileActivities = async (profileUserId: string) => {
+  const currentUser = getCurrentUserOrThrow();
+
+  try {
+    const activitiesRef = collection(db, 'activities');
+
+    // 1. Fetch activities created by profile user
+    const createdQuery = query(
+      activitiesRef,
+      where('userId', '==', profileUserId)
+    );
+    const createdSnapshot = await getDocs(createdQuery);
+
+    // 2. Fetch activities joined by profile user
+    const joinedQuery = query(
+      activitiesRef,
+      where(`joiners.${profileUserId}`, '!=', null)
+    );
+    const joinedSnapshot = await getDocs(joinedQuery);
+
+    const activitiesMap = new Map();
+    const now = new Date();
+
+    // Helper to process and filter activities
+    const processActivity = (doc: any) => {
+      const data = doc.data();
+      const activityId = doc.id;
+
+      // Skip if already processed
+      if (activitiesMap.has(activityId)) return;
+
+      // Check visibility
+      const isPublic = !data.isPrivate;
+      const isViewerparticipant = data.joiners && data.joiners[currentUser.uid];
+      const isViewerCreator = data.userId === currentUser.uid; // Unlikely but possible if examining own profile via this route
+
+      if (isPublic || isViewerparticipant || isViewerCreator) {
+        // Only show PAST activities
+        const activityDate = getSafeDate(data.dateTime);
+
+        if (activityDate && activityDate < now) {
+          activitiesMap.set(activityId, {
+            id: activityId,
+            ...data,
+            dateTime: activityDate
+          } as Activity);
+        }
+      }
+    };
+
+    createdSnapshot.docs.forEach(processActivity);
+    joinedSnapshot.docs.forEach(processActivity);
+
+    return Array.from(activitiesMap.values())
+      .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime()); // Sort by most recent first
+
+  } catch (error) {
+    console.error('Error fetching user profile activities:', error);
     throw error;
   }
 }; 
