@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, TextField, Button, Paper, IconButton, Alert } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import { auth, db } from '../firebase/config';
+import { auth, db } from '../../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
-import ConnectionsList from './ConnectionsList';
-import UserProfile from './UserProfile';
-import { updateUsername } from '../firebase/userActions';
-import PastActivities from './PastActivities';
-import CollapsibleSection from './CollapsibleSection';
+import { ConnectionsList } from '../connections';
+import { UserProfile } from '../profile';
+import { updateUsername } from '../../firebase/userActions';
+import { PastActivities } from '../activities';
+import { CollapsibleSection } from '../shared';
 
 /**
  * Profile Component

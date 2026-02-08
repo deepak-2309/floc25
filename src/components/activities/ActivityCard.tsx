@@ -5,42 +5,11 @@ import GroupIcon from '@mui/icons-material/Group';
 import LockIcon from '@mui/icons-material/Lock';
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
 import PaymentIcon from '@mui/icons-material/Payment';
-import { auth } from '../firebase/config';
+import { auth } from '../../firebase/config';
+import { Activity } from '../../types';
 
-/**
- * Interface representing an activity in the application.
- * Contains all necessary information about a single activity.
- */
-export interface Activity {
-  id: string;          // Unique identifier for the activity
-  name: string;        // Name/title of the activity
-  createdBy: string;   // Name of the user who created the activity
-  userId: string;      // ID of the user who created the activity
-  location: string;    // Location where the activity will take place
-  dateTime: Date;      // Date and time when the activity is scheduled
-  description: string; // Description of the activity
-  allowJoin?: boolean; // Whether the current user is allowed to join this activity
-  isPrivate?: boolean; // Whether the activity is marked as private (not visible to connections)
-  isPaid?: boolean;    // Whether the activity requires payment to join
-  cost?: number;       // Cost in INR (stored in paise for Razorpay)
-  currency?: string;   // Currency code (e.g., 'INR')
-  paymentDetails?: {   // Payment tracking information
-    totalCollected?: number;
-    participantCount?: number;
-  };
-  joiners?: {          // Map of users who have joined the activity
-    [userId: string]: {
-      email: string;
-      username?: string;
-      joinedAt: Date;
-      paymentStatus?: 'pending' | 'completed' | 'failed'; // Payment status for paid activities
-      paymentId?: string;        // Razorpay payment ID
-      razorpayOrderId?: string;  // Razorpay order ID
-      paidAmount?: number;       // Amount paid in paise
-      paidAt?: Date;            // When payment was completed
-    }
-  };
-}
+// Re-export Activity type for backward compatibility
+export type { Activity } from '../../types';
 
 /**
  * Props interface for the ActivityCard component.
@@ -52,6 +21,7 @@ interface ActivityCardProps {
   onJoinToggle?: () => void;      // Callback function for join/unjoin action (optional)
   isJoined?: boolean;             // Whether the current user has joined this activity
 }
+
 
 /**
  * ActivityCard Component

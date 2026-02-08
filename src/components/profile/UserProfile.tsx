@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Paper, IconButton, Alert, CircularProgress } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ConnectionsList from './ConnectionsList';
-import PastActivities from './PastActivities';
-import CollapsibleSection from './CollapsibleSection';
-import { fetchUserProfile } from '../firebase/userActions';
+import { ConnectionsList } from '../connections';
+import { PastActivities } from '../activities';
+import { CollapsibleSection } from '../shared';
+import { fetchUserProfile } from '../../firebase/userActions';
 
 /**
  * UserProfile Component

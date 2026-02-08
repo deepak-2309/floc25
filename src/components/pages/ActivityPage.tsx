@@ -12,10 +12,11 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { fetchActivityById, joinActivity, hasUserJoined, leaveActivity } from '../firebase/activityActions';
-import ActivityCard, { Activity } from './ActivityCard';
-import { auth } from '../firebase/config';
-import { getCurrentUserData } from '../firebase/authUtils';
+import { fetchActivityById, joinActivity, hasUserJoined, leaveActivity } from '../../firebase/activityActions';
+import { ActivityCard } from '../activities';
+import { Activity } from '../../types';
+import { auth } from '../../firebase/config';
+import { getCurrentUserData } from '../../firebase/authUtils';
 
 // Import routes from App for consistency
 const ROUTES = {

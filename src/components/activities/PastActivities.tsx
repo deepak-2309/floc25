@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, CircularProgress, Alert } from '@mui/material';
-import ActivityCard, { Activity } from './ActivityCard';
-import { fetchUserProfileActivities } from '../firebase/activityActions';
-import { auth } from '../firebase/config';
+import ActivityCard from './ActivityCard';
+import { Activity } from '../../types';
+import { fetchUserProfileActivities } from '../../firebase/activityActions';
+import { auth } from '../../firebase/config';
 
 /**
  * PastActivities Component

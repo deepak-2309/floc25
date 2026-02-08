@@ -9,15 +9,9 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { auth } from './firebase/config';
 import { signOut, onAuthStateChanged, User } from 'firebase/auth';
 
-// Component imports for different pages/views
-import Login from './components/Login';
-import LandingPage from './components/LandingPage';
-import LegalPage from './components/LegalPage';
-import MyActivities from './components/MyActivities';
-import FriendsActivities from './components/FriendsActivities';
-import Profile from './components/Profile';
+// Page imports
+import { Login, MyActivities, FriendsActivities, Profile, ActivityPage, LandingPage, LegalPage } from './components/pages';
 import { updateUserData } from './firebase/authUtils';
-import ActivityPage from './components/ActivityPage';
 
 // Define all route paths in one place for easy maintenance
 const ROUTES = {

@@ -1,23 +1,15 @@
 import { collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where, writeBatch, deleteField } from 'firebase/firestore';
-import { db } from './config'; // Import from config
-import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils'; // Import helpers
+import { db } from './config';
+import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils';
+import { UserConnections, Connection, UserProfile } from '../types';
 
-interface UserConnection {
-  email: string;
-  username: string | null;
-  connectedAt: any; // Firebase Timestamp
-}
-
-interface UserConnections {
-  [userId: string]: UserConnection;
-}
 
 /**
  * Adds a connection to the current user's document
  * @param targetEmail The email of the user to connect with
  * @throws Error if user is not authenticated or target user doesn't exist
  */
-export const addConnection = async (targetEmail: string) => {
+export const addConnection = async (targetEmail: string): Promise<void> => {
   const currentUser = getCurrentUserOrThrow();
   const currentUserData = await getCurrentUserData();
 
@@ -80,7 +72,7 @@ export const addConnection = async (targetEmail: string) => {
  * @returns Array of connections with user details
  * @throws Error if user is not authenticated
  */
-export const fetchUserConnections = async () => {
+export const fetchUserConnections = async (): Promise<Connection[]> => {
   const userData = await getCurrentUserData();
 
   if (!userData || !userData.connections) {
@@ -101,7 +93,7 @@ export const fetchUserConnections = async () => {
  * @param newUsername The new username to set
  * @throws Error if user is not authenticated
  */
-export const updateUsername = async (newUsername: string) => {
+export const updateUsername = async (newUsername: string): Promise<void> => {
   const currentUser = getCurrentUserOrThrow();
   const userData = await getCurrentUserData();
 
@@ -139,7 +131,7 @@ export const updateUsername = async (newUsername: string) => {
  * @param targetUserId The ID of the user to remove from connections
  * @throws Error if user is not authenticated or connection doesn't exist
  */
-export const removeConnection = async (targetUserId: string) => {
+export const removeConnection = async (targetUserId: string): Promise<void> => {
   const currentUser = getCurrentUserOrThrow();
   const currentUserData = await getCurrentUserData();
 
@@ -176,7 +168,7 @@ export const removeConnection = async (targetUserId: string) => {
  * @returns User profile data (username, email)
  * @throws Error if user not found
  */
-export const fetchUserProfile = async (userId: string) => {
+export const fetchUserProfile = async (userId: string): Promise<UserProfile> => {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
 
@@ -202,7 +194,7 @@ export const fetchUserProfile = async (userId: string) => {
  * @param userId The ID of the user whose connections to fetch
  * @returns Array of connections with mutual status and self-identification
  */
-export const fetchUserConnectionsList = async (userId: string) => {
+export const fetchUserConnectionsList = async (userId: string): Promise<Connection[]> => {
   const currentUser = getCurrentUserOrThrow();
   const currentUserData = await getCurrentUserData();
   const myConnections = currentUserData?.connections || {};

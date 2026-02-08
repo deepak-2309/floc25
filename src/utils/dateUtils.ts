@@ -1,5 +1,4 @@
 
-
 /**
  * Safely converts a Firestore Timestamp, date string, or Date object to a JavaScript Date object.
  * Returns null if the input is invalid or null/undefined.
@@ -29,4 +28,25 @@ export const getSafeDate = (value: any): Date | null => {
     }
 
     return null;
+};
+
+/**
+ * Formats a date object for use in datetime-local input fields.
+ * Format: YYYY-MM-DDThh:mm
+ * 
+ * @param date - The date to format
+ * @returns Formatted string or empty string if date is invalid
+ */
+export const formatDateTimeForInput = (date: Date | null | undefined): string => {
+    if (!date) return '';
+    const safeDate = getSafeDate(date);
+    if (!safeDate) return '';
+
+    const year = safeDate.getFullYear();
+    const month = String(safeDate.getMonth() + 1).padStart(2, '0');
+    const day = String(safeDate.getDate()).padStart(2, '0');
+    const hours = String(safeDate.getHours()).padStart(2, '0');
+    const minutes = String(safeDate.getMinutes()).padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
 };

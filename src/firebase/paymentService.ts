@@ -1,32 +1,16 @@
 import { doc, updateDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from './config';
 import { getCurrentUserData, getCurrentUserOrThrow } from './authUtils';
-import {
-  loadRazorpayScript,
-  createPaymentOptions,
-  RazorpayResponse
-} from './razorpayConfig';
+import { loadRazorpayScript, createPaymentOptions, RazorpayResponse } from '../services/razorpay/razorpayConfig';
+import { CreateOrderRequest, VerifyPaymentRequest } from '../types';
+
+// Re-export types for backward compatibility
+export type { CreateOrderRequest, VerifyPaymentRequest } from '../types';
 
 declare global {
   interface Window {
     Razorpay: any;
   }
-}
-
-// Interface for creating a payment order
-export interface CreateOrderRequest {
-  amount: number; // Amount in paise
-  currency: string;
-  activityId: string;
-  activityName: string;
-}
-
-// Interface for payment verification
-export interface VerifyPaymentRequest {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-  activityId: string;
 }
 
 /**
