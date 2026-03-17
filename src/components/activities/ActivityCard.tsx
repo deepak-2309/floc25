@@ -4,7 +4,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import GroupIcon from '@mui/icons-material/Group';
 import LockIcon from '@mui/icons-material/Lock';
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
-import PaymentIcon from '@mui/icons-material/Payment';
 import { auth } from '../../firebase/config';
 import { Activity } from '../../types';
 
@@ -119,10 +118,8 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
                 size="small"
                 sx={{ mt: -1, mr: -1 }}
                 disabled={activity.isPaid && userPaymentStatus === 'pending'}
-                startIcon={activity.isPaid && !isJoined ? <PaymentIcon /> : undefined}
               >
-                {isJoined ? 'Leave' :
-                  activity.isPaid ? `Pay ₹${formatCost(activity.cost || 0)}` : 'Join'}
+                {isJoined ? 'Leave' : 'Join'}
               </Button>
             )}
             {onEdit && isCreator && (

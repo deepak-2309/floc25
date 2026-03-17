@@ -1,12 +1,6 @@
 // Razorpay configuration and utilities
 export const RAZORPAY_CONFIG = {
-  // Get from Razorpay Dashboard
   keyId: process.env.REACT_APP_RAZORPAY_KEY_ID || '',
-  keySecret: process.env.REACT_APP_RAZORPAY_KEY_SECRET || '',
-  // Webhook secret for payment verification
-  webhookSecret: process.env.REACT_APP_RAZORPAY_WEBHOOK_SECRET || '',
-  // Base URL for your backend
-  backendUrl: process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001',
 };
 
 // Razorpay payment options interface
@@ -16,7 +10,7 @@ export interface RazorpayOptions {
   currency: string;
   name: string;
   description: string;
-  order_id: string;
+  order_id?: string; // Optional — only needed for server-created orders
   handler: (response: RazorpayResponse) => void;
   modal?: {
     ondismiss?: () => void;
@@ -29,23 +23,19 @@ export interface RazorpayOptions {
   theme: {
     color: string;
   };
-  method: {
-    upi: boolean;
-    card: boolean;
-    netbanking: boolean;
-    wallet: boolean;
-  };
 }
 
 // Razorpay payment response interface
+// order_id and signature are only present when an order_id was passed to checkout
 export interface RazorpayResponse {
   razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
+  razorpay_order_id?: string;
+  razorpay_signature?: string;
 }
 
-// Helper function to load Razorpay script
+// Helper function to load Razorpay script (idempotent)
 export const loadRazorpayScript = (): Promise<boolean> => {
+  if (window.Razorpay) return Promise.resolve(true);
   return new Promise((resolve) => {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -55,42 +45,33 @@ export const loadRazorpayScript = (): Promise<boolean> => {
   });
 };
 
-// Helper function to create Razorpay order options
+// Helper function to create Razorpay checkout options
 export const createPaymentOptions = (
-  orderId: string,
   amount: number,
+  orderId: string,
   activityName: string,
   userEmail: string,
   userName: string,
   onSuccess: (response: RazorpayResponse) => void,
-  onError: (error: any) => void
+  onDismiss: () => void
 ): RazorpayOptions => {
   return {
     key: RAZORPAY_CONFIG.keyId,
-    amount: amount, // Amount in paise
+    amount, // Amount in paise
     currency: 'INR',
     name: 'Floc',
     description: `Payment for ${activityName}`,
     order_id: orderId,
     handler: onSuccess,
     modal: {
-      ondismiss: () => {
-        console.log('Payment modal closed');
-        onError('Payment cancelled by user');
-      }
+      ondismiss: onDismiss,
     },
     prefill: {
       name: userName,
       email: userEmail,
     },
     theme: {
-      color: '#A06B89', // Using the app's primary color
-    },
-    method: {
-      upi: true,
-      card: true,
-      netbanking: true,
-      wallet: true,
+      color: '#0D9488',
     },
   };
-}; 
+};
