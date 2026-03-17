@@ -18,6 +18,21 @@ export interface ActivityJoiner {
 }
 
 /**
+ * Represents a joiner who has left or been removed from an activity.
+ */
+export interface DepartedJoiner {
+    email: string;
+    username: string | null;
+    joinedAt: string;
+    departedAt: string;
+    departedReason: 'left' | 'removed_by_creator';
+    paidAmount: number;
+    paymentId?: string;
+    refundStatus: 'n/a' | 'pending' | 'processing' | 'completed' | 'declined';
+    refundId?: string;
+}
+
+/**
  * Payment tracking details for paid activities.
  */
 export interface PaymentDetails {
@@ -46,6 +61,12 @@ export interface Activity {
     joiners?: {
         [userId: string]: ActivityJoiner;
     };
+    status?: 'active' | 'cancelled' | 'completed';
+    maxParticipants?: number;
+    departedJoiners?: {
+        [userId: string]: DepartedJoiner;
+    };
+    payoutStatus?: 'pending' | 'transferred';
 }
 
 /**

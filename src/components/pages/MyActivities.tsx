@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Fab, CircularProgress, Alert, Snackbar } from '@mui/material';
+import { Box, Fab, CircularProgress, Alert, Snackbar, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { ActivityCard, CreateActivitySheet, EditActivitySheet } from '../activities';
 import { Activity } from '../../types';
@@ -7,8 +7,11 @@ import {
   writeActivity,
   deleteActivity,
   updateActivity,
+  cancelActivity,
 } from '../../firebase/activityActions';
 import { useActivities } from '../../hooks/useActivities';
+import { auth, functions } from '../../firebase/config';
+import { httpsCallable } from 'firebase/functions';
 
 /**
  * MyActivities Component
@@ -37,6 +40,7 @@ const MyActivities: React.FC = () => {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [leaveConfirm, setLeaveConfirm] = useState<{ open: boolean; activity: Activity | null }>({ open: false, activity: null });
 
   // Combine errors from hook and local actions
   const displayError = hookError || actionError;
@@ -76,6 +80,37 @@ const MyActivities: React.FC = () => {
     }
   };
 
+  const handleCancel = async (id: string) => {
+    try {
+      setActionError(null);
+      const activity = editingActivity;
+      const hasPaidParticipants =
+        activity?.isPaid &&
+        Object.entries(activity?.joiners || {}).some(
+          ([uid, j]) => uid !== activity.userId && (j.paidAmount || 0) > 0
+        );
+
+      if (hasPaidParticipants) {
+        // Cloud Function handles refunds + soft-cancel atomically
+        const cancelAndRefund = httpsCallable<{ activityId: string }, { success: boolean }>(
+          functions,
+          'cancelActivityAndRefund'
+        );
+        await cancelAndRefund({ activityId: id });
+      } else {
+        await cancelActivity(id);
+      }
+
+      await reload();
+      setSuccessMessage('Activity cancelled');
+      setIsEditSheetOpen(false);
+      setEditingActivity(null);
+    } catch (error: any) {
+      console.error('Error cancelling activity:', error);
+      setActionError(error.message || 'Failed to cancel activity');
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
       setActionError(null);
@@ -88,8 +123,17 @@ const MyActivities: React.FC = () => {
     }
   };
 
-  const handleJoinToggle = async (activity: Activity) => {
-    await joinToggle(activity);
+  const handleJoinToggle = (activity: Activity) => {
+    const currentUserId = auth.currentUser?.uid;
+    const joiner = currentUserId ? activity.joiners?.[currentUserId] : null;
+    const isCurrentlyJoined = !!joiner;
+    const hasPaid = isCurrentlyJoined && activity.isPaid && (joiner?.paidAmount || 0) > 0;
+
+    if (isCurrentlyJoined && hasPaid) {
+      setLeaveConfirm({ open: true, activity });
+    } else {
+      joinToggle(activity);
+    }
   };
 
   return (
@@ -157,8 +201,32 @@ const MyActivities: React.FC = () => {
           onSubmit={handleSubmitEdit}
           activity={editingActivity}
           onDelete={() => handleDelete(editingActivity.id)}
+          onCancel={() => handleCancel(editingActivity.id)}
+          onRefresh={reload}
         />
       )}
+      <Dialog open={leaveConfirm.open} onClose={() => setLeaveConfirm({ open: false, activity: null })}>
+        <DialogTitle>Leave this activity?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You've paid ₹{Math.round((leaveConfirm.activity?.joiners?.[auth.currentUser?.uid || '']?.paidAmount || 0) / 100)}.
+            Refunds are at the creator's discretion — they'll need to manually approve your refund.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLeaveConfirm({ open: false, activity: null })}>Stay</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              if (leaveConfirm.activity) joinToggle(leaveConfirm.activity);
+              setLeaveConfirm({ open: false, activity: null });
+            }}
+          >
+            Leave anyway
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

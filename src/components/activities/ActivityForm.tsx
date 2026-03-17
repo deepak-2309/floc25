@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import ShareIcon from '@mui/icons-material/Share';
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
+import PeopleIcon from '@mui/icons-material/People';
 import { Activity } from '../../types';
 import { formatDateTimeForInput } from '../../utils/dateUtils';
 
@@ -23,7 +24,7 @@ interface ActivityFormProps {
     slotProps?: {
         submitButton?: React.ComponentProps<typeof Button>;
     };
-    children?: React.ReactNode; // For additional action buttons like Delete
+    children?: React.ReactNode;
 }
 
 const ActivityForm: React.FC<ActivityFormProps> = ({
@@ -35,7 +36,6 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
     slotProps,
     children
 }) => {
-    // Form State
     const [name, setName] = useState(initialValues?.name || '');
     const [location, setLocation] = useState(initialValues?.location || '');
     const [description, setDescription] = useState(initialValues?.description || '');
@@ -43,8 +43,8 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
     const [isPrivate, setIsPrivate] = useState<boolean>(initialValues?.isPrivate || false);
     const [isPaid, setIsPaid] = useState<boolean>(initialValues?.isPaid || false);
     const [cost, setCost] = useState<string>('');
+    const [maxParticipants, setMaxParticipants] = useState<string>('');
 
-    // Initialize state from props
     useEffect(() => {
         if (initialValues) {
             setName(initialValues.name || '');
@@ -60,6 +60,10 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
             if (initialValues.dateTime) {
                 setSelectedDateTime(formatDateTimeForInput(initialValues.dateTime));
             }
+
+            setMaxParticipants(
+                initialValues.maxParticipants != null ? String(initialValues.maxParticipants) : ''
+            );
         }
     }, [initialValues]);
 
@@ -73,8 +77,9 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
             description,
             isPrivate,
             isPaid,
-            cost: isPaid ? parseFloat(cost) * 100 : 0, // Store in paise
-            currency: isPaid ? 'INR' : 'INR',
+            cost: isPaid ? parseFloat(cost) * 100 : 0,
+            currency: 'INR',
+            maxParticipants: maxParticipants ? parseInt(maxParticipants, 10) : undefined,
         };
 
         onSubmit(activityData);
@@ -88,12 +93,10 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 2,
-                // Consistent placeholder styling across all fields
                 '& .MuiInputBase-input::placeholder': {
                     color: 'text.secondary',
                     opacity: 0.7,
                 },
-                // Hide datetime native format when empty, show placeholder instead
                 '& input[type="datetime-local"]': {
                     '&::-webkit-datetime-edit': {
                         visibility: 'hidden',
@@ -169,7 +172,6 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
                         label="Private"
                     />
 
-                    {/* Share Button / Placeholder */}
                     <Tooltip title={showShareButton ? "Share activity link" : "Create activity first to share"}>
                         <span>
                             <Button
@@ -222,6 +224,23 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
                         required={isPaid}
                     />
                 </Collapse>
+
+                <TextField
+                    fullWidth
+                    label="Max participants (optional)"
+                    type="number"
+                    value={maxParticipants}
+                    onChange={(e) => setMaxParticipants(e.target.value)}
+                    placeholder="No limit"
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <PeopleIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    inputProps={{ min: 1 }}
+                />
             </Box>
 
             <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
@@ -230,7 +249,7 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
                 <Button
                     type="submit"
                     variant="contained"
-                    fullWidth={!children} // Full width if no other buttons
+                    fullWidth={!children}
                     sx={{ flex: 1, ...slotProps?.submitButton?.sx }}
                     {...slotProps?.submitButton}
                 >

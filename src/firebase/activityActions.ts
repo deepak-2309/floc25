@@ -15,6 +15,7 @@ export {
   writeActivity,
   updateActivity,
   deleteActivity,
+  cancelActivity,
   // Query operations
   fetchUserActivities,
   fetchConnectionsActivities,
@@ -24,4 +25,5 @@ export {
   joinActivity,
   leaveActivity,
   hasUserJoined,
+  removeParticipant,
 } from './activities';

@@ -19,6 +19,10 @@ npm test
 
 # Run a single test file
 npm test -- --testPathPattern=<filename>
+
+# Deploy Cloud Functions
+cd functions && npm install
+firebase deploy --only functions
 ```
 
 The dev server runs on `http://localhost:3000`.
@@ -38,6 +42,12 @@ REACT_APP_RAZORPAY_KEY_SECRET=
 REACT_APP_RAZORPAY_WEBHOOK_SECRET=
 ```
 
+Cloud Functions use server-side env vars (set via `firebase functions:config:set` or Firebase environment):
+```
+RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET
+```
+
 Note: The `.env.example` file uses `VITE_` prefixes, but the actual app uses `REACT_APP_` prefixes (Create React App convention).
 
 ## Architecture Overview
@@ -54,14 +64,23 @@ Note: The `.env.example` file uses `VITE_` prefixes, but the actual app uses `RE
 ### Data Layer
 
 **`src/firebase/`** — all Firestore interactions:
-- `config.ts` — exports `auth`, `db`, `googleProvider`
+- `config.ts` — exports `auth`, `db`, `functions`, `googleProvider`
 - `authUtils.ts` — `getCurrentUserOrThrow()`, `getCurrentUserData()`, `updateUserData()`
 - `activities/` — split into `crud.ts`, `queries.ts`, `joins.ts`, re-exported via `index.ts`
-- `activityActions.ts` — higher-level activity actions used by hooks
+  - `crud.ts` — `writeActivity`, `updateActivity`, `deleteActivity`, `cancelActivity` (soft-cancel)
+  - `joins.ts` — `joinActivity` (with capacity + re-join checks), `leaveActivity` (moves to `departedJoiners`), `hasUserJoined`, `removeParticipant` (creator kick)
+- `activityActions.ts` — barrel re-export of all activity operations; used by hooks and pages
 - `userActions.ts` — user profile and connection operations
-- `paymentService.ts` — Razorpay order creation and payment verification
+- `paymentService.ts` — `initiatePayment`, `handlePaymentSuccess`, `hasUserPaid`, `initiateRefund` (calls `initiateRazorpayRefund` Cloud Function)
 
 **`src/services/razorpay/razorpayConfig.ts`** — Razorpay SDK initialization
+
+### Cloud Functions (`functions/index.js`)
+
+Three callable functions, all require Firebase auth:
+- `createRazorpayOrder` — creates a Razorpay order server-side, returns `{ orderId }`
+- `initiateRazorpayRefund` — creator-only; refunds a single departed participant via Razorpay, returns `{ refundId }`
+- `cancelActivityAndRefund` — creator-only; refunds all paid active + pending-refund departed joiners, then soft-cancels the activity
 
 ### Custom Hooks (`src/hooks/`)
 
@@ -73,7 +92,7 @@ Note: The `.env.example` file uses `VITE_` prefixes, but the actual app uses `RE
 
 Organized by domain, each folder has an `index.ts` barrel:
 - `pages/` — top-level route components (MyActivities, FriendsActivities, Profile, ActivityPage, LandingPage, Login, LegalPage)
-- `activities/` — ActivityCard, ActivityForm, CreateActivitySheet, EditActivitySheet, PastActivities
+- `activities/` — ActivityCard, ActivityForm, CreateActivitySheet, EditActivitySheet, PastActivities, **ParticipantManagement**
 - `connections/` — AddConnectionDialog, ConnectionsList, DeleteConnectionDialog
 - `landing/` — HeroSection, FeaturesGrid, Footer, SquashBallIcon
 - `profile/` — UserProfile
@@ -82,9 +101,10 @@ Organized by domain, each folder has an `index.ts` barrel:
 ### Types (`src/types/`)
 
 Central barrel at `src/types/index.ts`. Key types:
-- `Activity` — includes optional `isPaid`, `cost` (in paise), `joiners` map keyed by userId
-- `ActivityJoiner` — includes optional `paymentStatus`, `razorpayOrderId`
-- `Connection` / `UserConnection` / `UserProfile`
+- `Activity` — `isPaid`, `cost` (in paise), `joiners` map, `departedJoiners` map, `status` ('active'|'cancelled'|'completed'), `maxParticipants`, `payoutStatus`
+- `ActivityJoiner` — `paymentStatus`, `paymentId`, `paidAmount`, `paidAt`
+- `DepartedJoiner` — `departedAt`, `departedReason` ('left'|'removed_by_creator'), `paidAmount`, `paymentId`, `refundStatus` ('n/a'|'pending'|'processing'|'completed'|'declined'), `refundId`
+- `Connection` / `UserConnection` / `UserProfile` (UserProfile has `razorpayContactId`, `razorpayFundAccountId` for future payout use)
 
 ### Theme (`src/theme.ts`)
 
@@ -93,5 +113,42 @@ Material Design 3-inspired MUI theme. Primary color: `#0D9488` (teal). Secondary
 ### Firestore Security Rules (`firestore.rules`)
 
 - `users/{userId}` — authenticated users can read all; write/update own doc; update others' `connections` field only
-- `activities/{activityId}` — authenticated read/create/list; update by owner (full) or anyone for `joiners`/`paymentDetails` fields; delete by owner only
+- `activities/{activityId}` — authenticated read/create/list; owner can do full updates; non-owners can update `joiners`, `departedJoiners`, `paymentDetails` fields only; delete by owner only
 - `payment_orders/{orderId}` — authenticated create; read/write own orders only
+
+## Participant Management & Payment Lifecycle
+
+This feature was implemented as part of the "Paid Activity Participant Management" CUJs. Key behaviours:
+
+### Leaving a paid activity
+- `leaveActivity` moves the user from `joiners` to `departedJoiners` with `refundStatus: 'pending'`
+- Before calling leave, all three pages (MyActivities, FriendsActivities, ActivityPage) show a confirmation dialog: "You've paid ₹X. Refunds are at the creator's discretion."
+
+### Re-joining
+- Blocked if `departedJoiners[uid].refundStatus === 'pending'`
+- Allowed (pays again) if `'completed'` or `'declined'`
+- Free events: always allowed subject to capacity
+
+### Capacity limits
+- Optional `maxParticipants` field on Activity
+- Join button shows "Full" and is disabled when at capacity
+- Capacity check runs before Razorpay order is created
+
+### Creator participant management (`ParticipantManagement` component)
+- Rendered inside `EditActivitySheet` for the creator
+- Shows active participants (creator pinned first, payment chips)
+- Shows departed participants with refund status
+- Kick flow: moves joiner to `departedJoiners` with reason `'removed_by_creator'`; creator chooses refund or no refund
+- Refund flow: calls `initiateRefund` → Cloud Function → sets `refundStatus: 'processing'`
+
+### Cancelling an event
+- Free events / no paid participants: "Delete Activity" (hard delete)
+- Paid events with paid participants: "Cancel Event" → calls `cancelActivityAndRefund` Cloud Function → bulk-refunds all paid active joiners + any pending-refund departed joiners → sets `status: 'cancelled'`
+
+## What's Not Yet Implemented
+
+**CUJ-6 — Creator payout after event completes.** Requires:
+1. RazorpayX (Payouts) product activation on the Razorpay account
+2. A scheduled Cloud Function to detect completed events and trigger payouts
+3. Payout registration UI on the Profile page (UPI/bank via Razorpay Contacts + Fund Accounts API)
+4. Platform fee % decision (TBD)

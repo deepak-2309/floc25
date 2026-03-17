@@ -111,3 +111,51 @@ export const initiatePayment = (
 export const hasUserPaid = (activityData: any, userId: string): boolean => {
   return activityData.joiners?.[userId]?.paymentStatus === 'completed';
 };
+
+/**
+ * Initiates a refund for a departed participant via a Cloud Function.
+ * Sets refundStatus to 'processing' in Firestore; the webhook/CF will update to 'completed'.
+ */
+export const initiateRefund = async (
+  activityId: string,
+  targetUserId: string
+): Promise<void> => {
+  const activityRef = doc(db, 'activities', activityId);
+  const activityDoc = await getDoc(activityRef);
+
+  if (!activityDoc.exists()) {
+    throw new Error('Activity not found');
+  }
+
+  const activityData = activityDoc.data();
+  const departed = activityData.departedJoiners?.[targetUserId];
+
+  if (!departed) {
+    throw new Error('Departed participant not found');
+  }
+  if (!departed.paymentId) {
+    throw new Error('No payment ID found for this participant');
+  }
+  if (departed.refundStatus !== 'pending') {
+    throw new Error('Refund already initiated or not applicable');
+  }
+
+  // Call the Cloud Function to trigger the Razorpay refund
+  const triggerRefund = httpsCallable<
+    { activityId: string; targetUserId: string; paymentId: string; amount: number },
+    { refundId: string }
+  >(functions, 'initiateRazorpayRefund');
+
+  const result = await triggerRefund({
+    activityId,
+    targetUserId,
+    paymentId: departed.paymentId,
+    amount: departed.paidAmount,
+  });
+
+  // Mark as processing with the Razorpay refund ID
+  await updateDoc(activityRef, {
+    [`departedJoiners.${targetUserId}.refundStatus`]: 'processing',
+    [`departedJoiners.${targetUserId}.refundId`]: result.data.refundId,
+  });
+};

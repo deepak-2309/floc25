@@ -6,3 +6,4 @@ export type { Activity } from '../../types';
 export { default as CreateActivitySheet } from './CreateActivitySheet';
 export { default as EditActivitySheet } from './EditActivitySheet';
 export { default as PastActivities } from './PastActivities';
+export { default as ParticipantManagement } from './ParticipantManagement';

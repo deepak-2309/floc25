@@ -4,15 +4,9 @@ import { getCurrentUserData, getCurrentUserOrThrow } from '../authUtils';
 import { Activity } from '../../types';
 
 /**
- * Activity CRUD operations - Create, Update, Delete
+ * Activity CRUD operations - Create, Update, Delete/Cancel
  */
 
-/**
- * Creates a new activity in Firestore
- * @param activityData The activity data without an ID
- * @returns The ID of the created activity
- * @throws Error if user is not authenticated
- */
 export const writeActivity = async (activityData: {
     name: string;
     location: string;
@@ -22,6 +16,7 @@ export const writeActivity = async (activityData: {
     isPaid?: boolean;
     cost?: number;
     currency?: string;
+    maxParticipants?: number;
 }): Promise<string> => {
     const currentUser = getCurrentUserOrThrow();
     const userData = await getCurrentUserData();
@@ -37,6 +32,8 @@ export const writeActivity = async (activityData: {
         createdBy: creatorName,
         isPrivate: activityData.isPrivate || false,
         isPaid: activityData.isPaid || false,
+        status: 'active',
+        ...(activityData.maxParticipants != null && { maxParticipants: activityData.maxParticipants }),
         ...(activityData.isPaid && {
             cost: activityData.cost,
             currency: activityData.currency,
@@ -52,8 +49,8 @@ export const writeActivity = async (activityData: {
                 joinedAt: new Date().toISOString(),
                 ...(activityData.isPaid && {
                     paymentStatus: 'completed' as const,
-                    paidAmount: 0, // Creator doesn't pay
-                    paidAt: new Date()
+                    paidAmount: 0,
+                    paidAt: new Date().toISOString()
                 })
             }
         }
@@ -62,11 +59,6 @@ export const writeActivity = async (activityData: {
     return docRef.id;
 };
 
-/**
- * Updates an existing activity in Firestore
- * @param activity The activity data with ID
- * @throws Error if user is not authenticated or not the owner of the activity
- */
 export const updateActivity = async (activity: Activity): Promise<void> => {
     const currentUser = getCurrentUserOrThrow();
 
@@ -89,6 +81,9 @@ export const updateActivity = async (activity: Activity): Promise<void> => {
             dateTime: activity.dateTime.toISOString(),
             isPrivate: activity.isPrivate || false,
             isPaid: activity.isPaid || false,
+            ...(activity.maxParticipants != null
+                ? { maxParticipants: activity.maxParticipants }
+                : { maxParticipants: null }),
             ...(activity.isPaid && {
                 cost: activity.cost,
                 currency: activity.currency || 'INR',
@@ -107,9 +102,36 @@ export const updateActivity = async (activity: Activity): Promise<void> => {
 };
 
 /**
- * Deletes an activity from Firestore
- * @param activityId The ID of the activity to delete
- * @throws Error if user is not authenticated or not the owner of the activity
+ * Soft-cancels an activity by setting status to 'cancelled'.
+ * The Firestore document is NOT deleted.
+ * For paid events, callers should trigger refunds before or after calling this.
+ */
+export const cancelActivity = async (activityId: string): Promise<void> => {
+    const currentUser = getCurrentUserOrThrow();
+
+    try {
+        const activityRef = doc(db, 'activities', activityId);
+        const activityDoc = await getDoc(activityRef);
+
+        if (!activityDoc.exists()) {
+            throw new Error('Activity not found');
+        }
+
+        if (activityDoc.data().userId !== currentUser.uid) {
+            throw new Error('You can only cancel your own activities');
+        }
+
+        await updateDoc(activityRef, { status: 'cancelled' });
+        console.log('Activity cancelled successfully');
+    } catch (error) {
+        console.error('Error cancelling activity:', error);
+        throw error;
+    }
+};
+
+/**
+ * Hard-deletes an activity. Only allowed for free (non-paid) activities
+ * or activities with no paid participants.
  */
 export const deleteActivity = async (activityId: string): Promise<void> => {
     const currentUser = getCurrentUserOrThrow();

@@ -10,6 +10,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
 } from '@mui/material';
 import { fetchActivityById, joinActivity, hasUserJoined, leaveActivity } from '../../firebase/activityActions';
@@ -42,6 +43,7 @@ const ActivityPage: React.FC = () => {
   const [joinLoading, setJoinLoading] = useState<boolean>(false);
   const [showConnectionDialog, setShowConnectionDialog] = useState<boolean>(false);
   const [isConnectedToCreator, setIsConnectedToCreator] = useState<boolean>(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   useEffect(() => {
     const loadActivity = async () => {
@@ -110,6 +112,14 @@ const ActivityPage: React.FC = () => {
       setJoinLoading(true);
 
       if (isJoined) {
+        const currentUserId = auth.currentUser?.uid;
+        const joiner = currentUserId ? activity.joiners?.[currentUserId] : null;
+        const hasPaid = activity.isPaid && (joiner?.paidAmount || 0) > 0;
+        if (hasPaid) {
+          setShowLeaveConfirm(true);
+          setJoinLoading(false);
+          return;
+        }
         await leaveActivity(activity.id);
         setIsJoined(false);
       } else {
@@ -158,6 +168,23 @@ const ActivityPage: React.FC = () => {
         setError('Failed to join activity');
       }
       setShowConnectionDialog(false);
+    } finally {
+      setJoinLoading(false);
+    }
+  };
+
+  const confirmLeave = async () => {
+    if (!activity) return;
+    try {
+      setJoinLoading(true);
+      setShowLeaveConfirm(false);
+      await leaveActivity(activity.id);
+      setIsJoined(false);
+      const updatedActivity = await fetchActivityById(activity.id);
+      if (updatedActivity) setActivity(updatedActivity);
+    } catch (error) {
+      if (error instanceof Error) setError(error.message);
+      else setError('Failed to leave activity');
     } finally {
       setJoinLoading(false);
     }
@@ -234,6 +261,23 @@ const ActivityPage: React.FC = () => {
             " Feel free to join if you're interested!"}
         </Typography>
       </Paper>
+
+      {/* Paid Leave Warning Dialog */}
+      <Dialog open={showLeaveConfirm} onClose={() => setShowLeaveConfirm(false)}>
+        <DialogTitle>Leave this activity?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You've paid ₹{Math.round((activity?.joiners?.[auth.currentUser?.uid || '']?.paidAmount || 0) / 100)}.
+            Refunds are at the creator's discretion — they'll need to manually approve your refund.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowLeaveConfirm(false)}>Stay</Button>
+          <Button color="error" variant="contained" onClick={confirmLeave} disabled={joinLoading}>
+            Leave anyway
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Connection Confirmation Dialog */}
       <Dialog

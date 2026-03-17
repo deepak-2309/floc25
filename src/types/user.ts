@@ -38,4 +38,6 @@ export interface UserProfile {
     id: string;
     username: string | null;
     email: string | null;
+    razorpayContactId?: string;
+    razorpayFundAccountId?: string;
 }

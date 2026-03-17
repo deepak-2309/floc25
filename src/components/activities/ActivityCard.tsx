@@ -4,42 +4,28 @@ import EditIcon from '@mui/icons-material/Edit';
 import GroupIcon from '@mui/icons-material/Group';
 import LockIcon from '@mui/icons-material/Lock';
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
+import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { auth } from '../../firebase/config';
 import { Activity } from '../../types';
 
-// Re-export Activity type for backward compatibility
 export type { Activity } from '../../types';
 
-/**
- * Props interface for the ActivityCard component.
- * Defines the expected properties that can be passed to the component.
- */
 interface ActivityCardProps {
-  activity: Activity;              // The activity data to display
-  onEdit?: () => void;            // Callback function for edit action (optional)
-  onJoinToggle?: () => void;      // Callback function for join/unjoin action (optional)
-  isJoined?: boolean;             // Whether the current user has joined this activity
+  activity: Activity;
+  onEdit?: () => void;
+  onJoinToggle?: () => void;
+  isJoined?: boolean;
 }
 
-
-/**
- * ActivityCard Component
- * 
- * Displays an activity in a Material-UI Card format with the following layout:
- * - Header: Activity name with optional edit button for creators
- * - Body: Location, date/time, and optional description
- * - Footer: Creator name, joiners count, and join/leave button
- */
 const ActivityCard: React.FC<ActivityCardProps> = ({
   activity,
   onEdit,
   onJoinToggle,
   isJoined = false,
 }) => {
-  // Check if current user is the creator of the activity
   const isCreator = auth.currentUser?.uid === activity.userId;
 
-  // Format date and time using native JavaScript
   const formatDateTime = (date: Date) => {
     const dateStr = date.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -54,21 +40,23 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     return `${dateStr} at ${timeStr}`;
   };
 
-  // Format cost for display (convert paise to rupees, no decimals)
   const formatCost = (costInPaise: number) => {
     return Math.round(costInPaise / 100).toString();
   };
 
-  // Get current user's payment status
   const getCurrentUserPaymentStatus = () => {
     if (!activity.joiners || !auth.currentUser) return null;
     return activity.joiners[auth.currentUser.uid]?.paymentStatus || null;
   };
 
   const userPaymentStatus = getCurrentUserPaymentStatus();
-
-  // Get number of joiners
   const joinersCount = activity.joiners ? Object.keys(activity.joiners).length : 0;
+  const isCancelled = activity.status === 'cancelled';
+  const isCompleted = activity.status === 'completed';
+  const isFull =
+    !isCreator &&
+    activity.maxParticipants != null &&
+    joinersCount >= activity.maxParticipants;
 
   const [tooltipOpen, setTooltipOpen] = useState(false);
 
@@ -76,16 +64,41 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     setTooltipOpen(!tooltipOpen);
   };
 
+  const getJoinButton = () => {
+    if (!onJoinToggle || isCreator || activity.allowJoin === false) return null;
+
+    if (isCancelled || isCompleted) return null;
+
+    if (!isJoined && isFull) {
+      return (
+        <Button variant="outlined" size="small" disabled sx={{ mt: -1, mr: -1 }}>
+          Full
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        variant={isJoined ? 'outlined' : 'contained'}
+        onClick={onJoinToggle}
+        size="small"
+        sx={{ mt: -1, mr: -1 }}
+        disabled={activity.isPaid && userPaymentStatus === 'pending'}
+      >
+        {isJoined ? 'Leave' : 'Join'}
+      </Button>
+    );
+  };
+
   return (
-    <Card sx={{ mb: 2 }}>
+    <Card sx={{ mb: 2, opacity: isCancelled ? 0.7 : 1 }}>
       <CardContent>
-        {/* Header section with activity name and action buttons */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box>
-            <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
               {activity.name}
               {activity.isPrivate && (
-                <LockIcon fontSize="small" sx={{ ml: 1, color: 'text.secondary' }} />
+                <LockIcon fontSize="small" sx={{ color: 'text.secondary' }} />
               )}
               {activity.isPaid && (
                 <Chip
@@ -93,7 +106,22 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
                   label={formatCost(activity.cost || 0)}
                   size="small"
                   color="primary"
-                  sx={{ ml: 1 }}
+                />
+              )}
+              {isCancelled && (
+                <Chip
+                  icon={<BlockIcon />}
+                  label="Cancelled"
+                  size="small"
+                  color="error"
+                />
+              )}
+              {isCompleted && (
+                <Chip
+                  icon={<CheckCircleOutlineIcon />}
+                  label="Completed"
+                  size="small"
+                  color="success"
                 />
               )}
             </Typography>
@@ -108,21 +136,10 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
                 {activity.description}
               </Typography>
             )}
-
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {onJoinToggle && !isCreator && activity.allowJoin !== false && (
-              <Button
-                variant={isJoined ? "outlined" : "contained"}
-                onClick={onJoinToggle}
-                size="small"
-                sx={{ mt: -1, mr: -1 }}
-                disabled={activity.isPaid && userPaymentStatus === 'pending'}
-              >
-                {isJoined ? 'Leave' : 'Join'}
-              </Button>
-            )}
-            {onEdit && isCreator && (
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+            {getJoinButton()}
+            {onEdit && isCreator && !isCancelled && (
               <IconButton
                 aria-label="edit"
                 onClick={onEdit}
@@ -134,7 +151,6 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           </Box>
         </Box>
 
-        {/* Footer section with creator name and joiners count */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
           <Typography color="textSecondary" variant="body2">
             by {activity.createdBy}
@@ -145,19 +161,20 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           >
             <GroupIcon sx={{ mr: 0.5 }} />
             <Typography variant="body2">
-              {joinersCount}
+              {activity.maxParticipants
+                ? `${joinersCount}/${activity.maxParticipants}`
+                : joinersCount}
             </Typography>
           </Box>
         </Box>
 
-        {/* Expandable joiners list */}
         {tooltipOpen && joinersCount > 0 && (
           <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
               Joined:
             </Typography>
             {Object.entries(activity.joiners || {})
-              .sort((a, b) => new Date(a[1].joinedAt).getTime() - new Date(b[1].joinedAt).getTime())
+              .sort((a, b) => new Date(a[1].joinedAt as any).getTime() - new Date(b[1].joinedAt as any).getTime())
               .map(([, joiner], index) => (
                 <Box key={index} sx={{ display: 'flex', pl: 1 }}>
                   <Typography variant="body2" sx={{ minWidth: 24, textAlign: 'right', mr: 0.5 }}>
@@ -176,4 +193,4 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   );
 };
 
-export default ActivityCard; 
+export default ActivityCard;
